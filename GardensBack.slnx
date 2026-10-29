@@ -1,0 +1,6 @@
+<Solution>
+  <Project Path="GardensBack.Application/GardensBack.Application.csproj" />
+  <Project Path="GardensBack.Domain/GardensBack.Domain.csproj" />
+  <Project Path="GardensBack.Infrastructure/GardensBack.Infrastructure.csproj" />
+  <Project Path="GardensBack/GardensBack.csproj" />
+</Solution>

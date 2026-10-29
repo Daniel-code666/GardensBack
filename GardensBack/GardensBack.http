@@ -1,0 +1,6 @@
+@GardensBack_HostAddress = http://localhost:5239
+
+GET {{GardensBack_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
