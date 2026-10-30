@@ -1,6 +1,7 @@
 ﻿using GardensBack.Application.Abstractions;
-using GardensBack.Application.DeviceProvisioning.Abstractions;
 using GardensBack.Application.DeviceConnectivity.Abstractions;
+using GardensBack.Application.DeviceProvisioning.Abstractions;
+using GardensBack.Infrastructure.Messaging;
 using GardensBack.Infrastructure.Persistance;
 using GardensBack.Infrastructure.Persistance.Repositories;
 using GardensBack.Infrastructure.Security;
@@ -22,6 +23,8 @@ namespace GardensBack.Domain
             services.AddSingleton<IProvisioningTokenService, ProvisioningTokenService>();
             services.AddSingleton<IClaimResponseSigner, ClaimResponseSigner>();
             services.AddSingleton<IMqttCredentialEnvelopeService, MqttCredentialEnvelopeService>();
+            services.AddScoped<IDeviceInventoryRepository, DeviceInventoryRepository>();
+            services.AddHostedService<MqttInventoryConsumer>();
 
             return services;
         }

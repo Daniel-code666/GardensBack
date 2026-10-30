@@ -68,10 +68,16 @@ builder.Services.AddOptions<DeviceProvisioningOptions>()
 
 builder.Services.AddOptions<RabbitMqOptions>()
     .Bind(builder.Configuration.GetSection(RabbitMqOptions.SectionName))
+    .Validate(options => !string.IsNullOrWhiteSpace(options.Host),
+        "RabbitMQ:Host es obligatorio.")
+    .Validate(options => options.MqttPort is >= 1 and <= 65535,
+        "RabbitMQ:MqttPort debe ser un puerto válido.")
     .Validate(options => !string.IsNullOrWhiteSpace(options.Username),
         "RabbitMQ:Username es obligatorio.")
     .Validate(options => !string.IsNullOrWhiteSpace(options.Password),
         "RabbitMQ:Password es obligatorio.")
+    .Validate(options => !string.IsNullOrWhiteSpace(options.InventoryConsumerClientId),
+        "RabbitMQ:InventoryConsumerClientId es obligatorio.")
     .ValidateOnStart();
 
 var app = builder.Build();

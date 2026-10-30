@@ -13,6 +13,8 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace GardensBack.Application
 {
+    using GardensBack.Application.DeviceInventory.Abstractions;
+    using GardensBack.Application.DeviceInventory.Repositories;
     using GardensBack.Application.DeviceProvisioning.Services;
 
     public static class ApplicationDependencyInjection
@@ -30,6 +32,7 @@ namespace GardensBack.Application
             services.AddScoped<JwtTokenGenerator>();
             services.AddScoped<IDeviceProvisioningService, DeviceProvisioningService>();
             services.AddScoped<IDeviceConnectivityConfigurationService, DeviceConnectivityConfigurationService>();
+            services.AddScoped<IDeviceInventoryService, DeviceInventoryService>();
 
             return services;
         }
