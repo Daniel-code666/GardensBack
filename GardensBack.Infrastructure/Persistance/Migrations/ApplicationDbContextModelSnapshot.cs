@@ -297,6 +297,9 @@ namespace GardensBack.Infrastructure.Persistance.Migrations
                     b.Property<DateTime>("CreationDate")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<DateTime?>("DeviceConfirmedAt")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<DateTime>("ExpiresAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -308,6 +311,9 @@ namespace GardensBack.Infrastructure.Persistance.Migrations
 
                     b.Property<int>("FirmwareReleaseId")
                         .HasColumnType("integer");
+
+                    b.Property<DateTime?>("InventoryConfirmedAt")
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<int>("MicroCtlDeviceId")
                         .HasColumnType("integer");

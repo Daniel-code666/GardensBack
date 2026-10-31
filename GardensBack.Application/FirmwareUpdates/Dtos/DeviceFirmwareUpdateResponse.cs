@@ -16,6 +16,8 @@ namespace GardensBack.Application.FirmwareUpdates.Dtos
         public DateTime ExpiresAt { get; set; }
         public DateTime? StartedAt { get; set; }
         public DateTime? PendingValidationAt { get; set; }
+        public DateTime? DeviceConfirmedAt { get; set; }
+        public DateTime? InventoryConfirmedAt { get; set; }
         public DateTime? CompletedAt { get; set; }
         public int? ProgressPercentage { get; set; }
         public string? FailureCode { get; set; }

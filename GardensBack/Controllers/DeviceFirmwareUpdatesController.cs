@@ -29,8 +29,7 @@ namespace GardensBack.Controllers
             if (!int.TryParse(User.FindFirstValue(JwtRegisteredClaimNames.Sub), out int userId))
                 return Unauthorized();
 
-            DeviceFirmwareUpdateResponse response =
-                await _service.RequestUpdate(request, userId, ct);
+            DeviceFirmwareUpdateResponse response = await _service.RequestUpdate(request, userId, ct);
 
             return Accepted(response);
         }

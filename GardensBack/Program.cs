@@ -80,6 +80,8 @@ builder.Services.AddOptions<RabbitMqOptions>()
         "RabbitMQ:Password es obligatorio.")
     .Validate(options => !string.IsNullOrWhiteSpace(options.InventoryConsumerClientId),
         "RabbitMQ:InventoryConsumerClientId es obligatorio.")
+    .Validate(options => !string.IsNullOrWhiteSpace(options.FirmwareStatusConsumerClientId),
+        "RabbitMQ:FirmwareStatusConsumerClientId es obligatorio.")
     .ValidateOnStart();
 
 builder.Services.AddOptions<FirmwareReleaseValidationOptions>()

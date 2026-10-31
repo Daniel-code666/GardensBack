@@ -40,6 +40,7 @@ namespace GardensBack.Application
             services.AddScoped<IFirmwareReleaseService, FirmwareReleaseService>();
             services.AddScoped<IFirmwareManifestService, FirmwareManifestService>();
             services.AddScoped<IDeviceFirmwareUpdateService, DeviceFirmwareUpdateService>();
+            services.AddScoped<IDeviceFirmwareUpdateStatusService, DeviceFirmwareUpdateStatusService>();
 
             return services;
         }

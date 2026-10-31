@@ -23,6 +23,8 @@ namespace GardensBack.Domain.Entities
         public DateTime RequestedAt { get; set; }
         public DateTime? StartedAt { get; set; }
         public DateTime? PendingValidationAt { get; set; }
+        public DateTime? DeviceConfirmedAt { get; set; }
+        public DateTime? InventoryConfirmedAt { get; set; }
         public DateTime? CompletedAt { get; set; }
         [Range(0, 100, ErrorMessage = "El valor debe estar entre 0 y 100.")]
         public int? ProgressPercentage { get; set; }

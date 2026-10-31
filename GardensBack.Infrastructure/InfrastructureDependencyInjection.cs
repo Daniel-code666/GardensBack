@@ -33,6 +33,7 @@ namespace GardensBack.Domain
             services.AddSingleton<IDeviceCommandKeyProtector, DeviceCommandKeyProtector>();
             services.AddSingleton<IOtaCommandAuthenticationService, OtaCommandAuthenticationService>();
             services.AddScoped<IDeviceControlPublisher, MqttDeviceControlPublisher>();
+            services.AddHostedService<MqttFirmwareUpdateStatusConsumer>();
 
             return services;
         }

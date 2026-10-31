@@ -8,5 +8,6 @@ namespace GardensBack.Application.DeviceProvisioning.Configuration
         public required string Username { get; set; }
         public required string Password { get; set; }
         public required string InventoryConsumerClientId { get; set; }
+        public required string FirmwareStatusConsumerClientId { get; set; }
     }
 }
