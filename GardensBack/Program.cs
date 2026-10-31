@@ -1,5 +1,6 @@
 using GardensBack.Application;
 using GardensBack.Application.DeviceProvisioning.Configuration;
+using GardensBack.Application.FirmwareReleases.Configuration;
 using GardensBack.Authentication;
 using GardensBack.Domain;
 using GardensBack.Health;
@@ -78,6 +79,16 @@ builder.Services.AddOptions<RabbitMqOptions>()
         "RabbitMQ:Password es obligatorio.")
     .Validate(options => !string.IsNullOrWhiteSpace(options.InventoryConsumerClientId),
         "RabbitMQ:InventoryConsumerClientId es obligatorio.")
+    .ValidateOnStart();
+
+builder.Services.AddOptions<FirmwareReleaseValidationOptions>()
+    .Bind(builder.Configuration.GetSection(FirmwareReleaseValidationOptions.SectionName))
+    .Validate(options => !string.IsNullOrWhiteSpace(options.PublicKeyPem),
+        "FirmwareReleaseValidation:PublicKeyPem es obligatorio.")
+    .Validate(options => options.DownloadTimeoutSeconds is >= 1 and <= 300,
+        "FirmwareReleaseValidation:DownloadTimeoutSeconds debe estar entre 1 y 300.")
+    .Validate(options => options.MaximumFirmwareSizeBytes is >= 1 and <= uint.MaxValue,
+        "FirmwareReleaseValidation:MaximumFirmwareSizeBytes debe estar entre 1 y uint.MaxValue.")
     .ValidateOnStart();
 
 var app = builder.Build();

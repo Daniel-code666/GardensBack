@@ -4,6 +4,7 @@ using GardensBack.Application.DeviceProvisioning.Constants;
 using GardensBack.Application.DeviceProvisioning.Dtos.Device;
 using GardensBack.Application.DeviceProvisioning.Dtos.Web;
 using GardensBack.Application.DeviceProvisioning.Enums;
+using GardensBack.Application.FirmwareReleases.Dtos;
 using GardensBack.Application.Roles.Dtos;
 using GardensBack.Application.Users.Dtos;
 using GardensBack.Domain.Entities;
@@ -121,6 +122,27 @@ namespace GardensBack.Application.Common.Mapping
                     options.MapFrom(source => source.ResponseCiphertext!))
                 .ForMember(destination => destination.AuthenticationTag, options =>
                     options.MapFrom(source => source.ResponseAuthenticationTag!));
+
+            CreateMap<CreateFirmwareReleaseRequest, FirmwareRelease>()
+                .ForMember(x => x.Id, o => o.Ignore())
+                .ForMember(x => x.Status, o => o.Ignore())
+                .ForMember(x => x.PublishedAt, o => o.Ignore())
+                .ForMember(x => x.DeviceFirmwareUpdates, o => o.Ignore())
+                .ForMember(x => x.Active, o => o.Ignore())
+                .ForMember(x => x.CreationDate, o => o.Ignore())
+                .ForMember(x => x.UpdateDate, o => o.Ignore());
+
+            CreateMap<FirmwareRelease, FirmwareReleaseResponse>();
+
+            CreateMap<UpdateFirmwareReleaseRequest, FirmwareRelease>()
+                .ForMember(x => x.Id, o => o.Ignore())
+                .ForMember(x => x.ReleaseId, o => o.Ignore())
+                .ForMember(x => x.Status, o => o.Ignore())
+                .ForMember(x => x.PublishedAt, o => o.Ignore())
+                .ForMember(x => x.DeviceFirmwareUpdates, o => o.Ignore())
+                .ForMember(x => x.Active, o => o.Ignore())
+                .ForMember(x => x.CreationDate, o => o.Ignore())
+                .ForMember(x => x.UpdateDate, o => o.Ignore());
         }
     }
 }
