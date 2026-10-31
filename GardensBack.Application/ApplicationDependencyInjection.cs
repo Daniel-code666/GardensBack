@@ -36,6 +36,7 @@ namespace GardensBack.Application
             services.AddScoped<IDeviceConnectivityConfigurationService, DeviceConnectivityConfigurationService>();
             services.AddScoped<IDeviceInventoryService, DeviceInventoryService>();
             services.AddScoped<IFirmwareReleaseService, FirmwareReleaseService>();
+            services.AddScoped<IFirmwareManifestService, FirmwareManifestService>();
 
             return services;
         }

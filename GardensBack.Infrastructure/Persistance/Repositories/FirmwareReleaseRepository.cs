@@ -28,6 +28,9 @@ namespace GardensBack.Infrastructure.Persistance.Repositories
         public async Task<IReadOnlyList<FirmwareRelease>> GetAll(string? board, FirmwareReleaseStatus? status, CancellationToken ct)
             => await _db.FirmwareReleases.Where(x => (string.IsNullOrEmpty(board) || x.Board == board) && (!status.HasValue || x.Status == status.Value)).ToListAsync(ct);
 
+        public async Task<FirmwareRelease?> FindPublishedByReleaseId(string releaseId, CancellationToken ct)
+            => await _db.FirmwareReleases.AsNoTracking().SingleOrDefaultAsync(x => x.ReleaseId == releaseId && x.Active && x.Status == FirmwareReleaseStatus.Published, ct);
+
         public async Task<int> SaveChanges(CancellationToken ct)
             => await _db.SaveChangesAsync(ct);
     }

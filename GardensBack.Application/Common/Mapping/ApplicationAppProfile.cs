@@ -4,6 +4,7 @@ using GardensBack.Application.DeviceProvisioning.Constants;
 using GardensBack.Application.DeviceProvisioning.Dtos.Device;
 using GardensBack.Application.DeviceProvisioning.Dtos.Web;
 using GardensBack.Application.DeviceProvisioning.Enums;
+using GardensBack.Application.FirmwareReleases.Constants;
 using GardensBack.Application.FirmwareReleases.Dtos;
 using GardensBack.Application.Roles.Dtos;
 using GardensBack.Application.Users.Dtos;
@@ -143,6 +144,10 @@ namespace GardensBack.Application.Common.Mapping
                 .ForMember(x => x.Active, o => o.Ignore())
                 .ForMember(x => x.CreationDate, o => o.Ignore())
                 .ForMember(x => x.UpdateDate, o => o.Ignore());
+
+            CreateMap<FirmwareRelease, FirmwareManifestResponse>()
+                .ForMember(x => x.Type, o => o.MapFrom(_ => FirmwareReleaseContract.ManifestType))
+                .ForMember(x => x.Size, o => o.MapFrom(x => x.SizeBytes));
         }
     }
 }

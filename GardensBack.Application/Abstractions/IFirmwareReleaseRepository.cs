@@ -11,5 +11,6 @@ namespace GardensBack.Application.Abstractions
         Task<IReadOnlyList<FirmwareRelease>> GetAll(string? board, FirmwareReleaseStatus? status, CancellationToken ct);
         Task Add(FirmwareRelease release, CancellationToken ct);
         Task<int> SaveChanges(CancellationToken ct);
+        Task<FirmwareRelease?> FindPublishedByReleaseId(string releaseId, CancellationToken ct);
     }
 }
