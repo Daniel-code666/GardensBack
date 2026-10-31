@@ -36,7 +36,10 @@ namespace GardensBack.Infrastructure.Messaging
                 .Build();
 
             await client.ConnectAsync(clientOptions, ct);
-            await client.PublishAsync(message, ct);
+            MqttClientPublishResult result = await client.PublishAsync(message, ct);
+
+            if (!result.IsSuccess)
+                throw new InvalidOperationException($"RabbitMQ rechazó: {result.ReasonCode}");
 
             if (client.IsConnected)
             {
