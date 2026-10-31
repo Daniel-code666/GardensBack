@@ -9,6 +9,7 @@ namespace GardensBack.Domain.Entities
     [Index(nameof(MicroCtlDeviceId), nameof(CreationDate))]
     [Index(nameof(FirmwareReleaseId))]
     [Index(nameof(Status), nameof(CreationDate))]
+    [Index(nameof(MicroCtlDeviceId), nameof(CommandVersion), IsUnique = true)]
     [Index(nameof(RequestedByUserId))]
     [Table("DeviceFirmwareUpdate", Schema = "Data")]
     public class DeviceFirmwareUpdate : BaseEntity
@@ -27,6 +28,8 @@ namespace GardensBack.Domain.Entities
         public int? ProgressPercentage { get; set; }
         public string? FailureCode { get; set; }
         public string? FailureMessage { get; set; }
+        public uint CommandVersion { get; set; }
+        public DateTime ExpiresAt { get; set; }
         // relaciones
         [ForeignKey(nameof(MicrocontrollerDevice))]
         public int MicroCtlDeviceId { get; set; }

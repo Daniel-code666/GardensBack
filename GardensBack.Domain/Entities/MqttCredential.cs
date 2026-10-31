@@ -34,6 +34,8 @@ namespace GardensBack.Domain.Entities
         public string? ResponseCiphertext { get; set; }
         [StringLength(32)]
         public string? ResponseAuthenticationTag { get; set; }
+        [StringLength(256)]
+        public string? ProtectedCommandKey { get; set; }
 
         // relaciones
         [ForeignKey(nameof(MicroCtrlDevice))]

@@ -18,6 +18,8 @@ namespace GardensBack.Application
     using GardensBack.Application.DeviceProvisioning.Services;
     using GardensBack.Application.FirmwareReleases.Abstractions;
     using GardensBack.Application.FirmwareReleases.Repositories;
+    using GardensBack.Application.FirmwareUpdates.Abstractions;
+    using GardensBack.Application.FirmwareUpdates.Services;
 
     public static class ApplicationDependencyInjection
     {
@@ -37,6 +39,7 @@ namespace GardensBack.Application
             services.AddScoped<IDeviceInventoryService, DeviceInventoryService>();
             services.AddScoped<IFirmwareReleaseService, FirmwareReleaseService>();
             services.AddScoped<IFirmwareManifestService, FirmwareManifestService>();
+            services.AddScoped<IDeviceFirmwareUpdateService, DeviceFirmwareUpdateService>();
 
             return services;
         }

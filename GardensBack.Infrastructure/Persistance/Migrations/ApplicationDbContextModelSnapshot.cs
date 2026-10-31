@@ -288,10 +288,16 @@ namespace GardensBack.Infrastructure.Persistance.Migrations
                     b.Property<bool>("Active")
                         .HasColumnType("boolean");
 
+                    b.Property<long>("CommandVersion")
+                        .HasColumnType("bigint");
+
                     b.Property<DateTime?>("CompletedAt")
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<DateTime>("CreationDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("ExpiresAt")
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("FailureCode")
@@ -340,6 +346,9 @@ namespace GardensBack.Infrastructure.Persistance.Migrations
                     b.HasIndex("FirmwareReleaseId");
 
                     b.HasIndex("RequestedByUserId");
+
+                    b.HasIndex("MicroCtlDeviceId", "CommandVersion")
+                        .IsUnique();
 
                     b.HasIndex("MicroCtlDeviceId", "CreationDate");
 
@@ -576,6 +585,10 @@ namespace GardensBack.Infrastructure.Persistance.Migrations
 
                     b.Property<int>("Port")
                         .HasColumnType("integer");
+
+                    b.Property<string>("ProtectedCommandKey")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)");
 
                     b.Property<string>("RequestId")
                         .HasColumnType("text");

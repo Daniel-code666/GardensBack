@@ -12,6 +12,7 @@ namespace GardensBack.Application.DeviceProvisioning.Services
     using GardensBack.Application.DeviceProvisioning.Dtos;
     using GardensBack.Application.DeviceProvisioning.Dtos.Device;
     using GardensBack.Application.DeviceProvisioning.Dtos.Internal;
+    using GardensBack.Application.FirmwareUpdates.Abstractions;
     using GardensBack.Domain.Entities;
     using GardensBack.Domain.Enums;
     using Microsoft.Extensions.Options;
@@ -26,6 +27,7 @@ namespace GardensBack.Application.DeviceProvisioning.Services
         IDeviceConnectivityConfigurationRepository connectivityRepository,
         IClaimResponseSigner claimResponseSigner,
         IMqttCredentialEnvelopeService mqttCredentialEnvelopeService,
+        IDeviceCommandKeyProtector commandKeyProtector,
         IMapper mapper,
         IOptions<DeviceProvisioningOptions> options,
         IOptions<RabbitMqOptions> rabbitMqOptions) : IDeviceProvisioningService
@@ -38,6 +40,7 @@ namespace GardensBack.Application.DeviceProvisioning.Services
         private readonly DeviceProvisioningOptions _options = options.Value;
         private readonly IClaimResponseSigner _claimResponseSigner = claimResponseSigner;
         private readonly IMqttCredentialEnvelopeService _mqttCredentialEnvelopeService = mqttCredentialEnvelopeService;
+        private readonly IDeviceCommandKeyProtector _commandKeyProtector = commandKeyProtector;
         private readonly RabbitMqOptions _rabbitMqOptions = rabbitMqOptions.Value;
 
         public async Task<StartDeviceProvisioningResponse> StartProvisioning(int userId, StartDeviceProvisioningRequest request, CancellationToken ct)
@@ -230,7 +233,15 @@ namespace GardensBack.Application.DeviceProvisioning.Services
             MqttCredential? credential = device.MqttCredential;
 
             if (credential?.RequestId == request.RequestId)
+            {
+                if (string.IsNullOrWhiteSpace(credential.ProtectedCommandKey))
+                {
+                    credential.ProtectedCommandKey = _commandKeyProtector.Protect(request.BootstrapKey);
+                    await _deviceRepository.SaveChanges(ct);
+                }
+
                 return GetStoredMqttCredentialResponse(credential);
+            }
 
             if (deviceClaim.ProvisioningTokenConsumedAt is not null)
                 throw new ConflictException("El token ya fue consumido por otra solicitud de credenciales.");
@@ -273,6 +284,7 @@ namespace GardensBack.Application.DeviceProvisioning.Services
             }
 
             UpdateMqttCredential(credential, payload, request, response, now);
+            credential.ProtectedCommandKey = _commandKeyProtector.Protect(request.BootstrapKey);
             deviceClaim.ProvisioningTokenConsumedAt = now;
 
             await _deviceRepository.SaveChanges(ct);

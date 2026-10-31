@@ -1,6 +1,7 @@
 ﻿using GardensBack.Application.Abstractions;
 using GardensBack.Application.DeviceConnectivity.Abstractions;
 using GardensBack.Application.DeviceProvisioning.Abstractions;
+using GardensBack.Application.FirmwareUpdates.Abstractions;
 using GardensBack.Infrastructure.Firmware;
 using GardensBack.Infrastructure.Messaging;
 using GardensBack.Infrastructure.Persistance;
@@ -28,6 +29,10 @@ namespace GardensBack.Domain
             services.AddHostedService<MqttInventoryConsumer>();
             services.AddScoped<IFirmwareReleaseRepository, FirmwareReleaseRepository>();
             services.AddHttpClient<IFirmwareReleasePublicationValidator, FirmwareReleasePublicationValidator>();
+            services.AddScoped<IDeviceFirmwareUpdateRepository, DeviceFirmwareUpdateRepository>();
+            services.AddSingleton<IDeviceCommandKeyProtector, DeviceCommandKeyProtector>();
+            services.AddSingleton<IOtaCommandAuthenticationService, OtaCommandAuthenticationService>();
+            services.AddScoped<IDeviceControlPublisher, MqttDeviceControlPublisher>();
 
             return services;
         }

@@ -1,6 +1,7 @@
 using GardensBack.Application;
 using GardensBack.Application.DeviceProvisioning.Configuration;
 using GardensBack.Application.FirmwareReleases.Configuration;
+using GardensBack.Application.FirmwareUpdates.Configuration;
 using GardensBack.Authentication;
 using GardensBack.Domain;
 using GardensBack.Health;
@@ -89,6 +90,30 @@ builder.Services.AddOptions<FirmwareReleaseValidationOptions>()
         "FirmwareReleaseValidation:DownloadTimeoutSeconds debe estar entre 1 y 300.")
     .Validate(options => options.MaximumFirmwareSizeBytes is >= 1 and <= uint.MaxValue,
         "FirmwareReleaseValidation:MaximumFirmwareSizeBytes debe estar entre 1 y uint.MaxValue.")
+    .ValidateOnStart();
+
+builder.Services.AddOptions<FirmwareUpdateOptions>()
+    .Bind(builder.Configuration.GetSection(FirmwareUpdateOptions.SectionName))
+    .Validate(options => options.CommandExpirationMinutes is >= 1 and <= 60,
+        "FirmwareUpdate:CommandExpirationMinutes debe estar entre 1 y 60.")
+    .ValidateOnStart();
+
+builder.Services.AddOptions<DeviceCommandSecurityOptions>()
+    .Bind(builder.Configuration.GetSection(DeviceCommandSecurityOptions.SectionName))
+    .Validate(options =>
+    {
+        if (string.IsNullOrWhiteSpace(options.EncryptionKey))
+            return false;
+
+        try
+        {
+            return Convert.FromBase64String(options.EncryptionKey).Length == 32;
+        }
+        catch (FormatException)
+        {
+            return false;
+        }
+    }, "DeviceCommandSecurity:EncryptionKey debe contener 32 bytes codificados en Base64.")
     .ValidateOnStart();
 
 var app = builder.Build();
