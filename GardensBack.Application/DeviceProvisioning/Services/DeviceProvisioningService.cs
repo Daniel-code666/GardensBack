@@ -234,11 +234,22 @@ namespace GardensBack.Application.DeviceProvisioning.Services
 
             if (credential?.RequestId == request.RequestId)
             {
+                bool changed = false;
+
                 if (string.IsNullOrWhiteSpace(credential.ProtectedCommandKey))
                 {
                     credential.ProtectedCommandKey = _commandKeyProtector.Protect(request.BootstrapKey);
-                    await _deviceRepository.SaveChanges(ct);
+                    changed = true;
                 }
+
+                if (device.ProvisioningState != ProvisioningState.Provisioned)
+                {
+                    device.ProvisioningState = ProvisioningState.Provisioned;
+                    changed = true;
+                }
+
+                if (changed)
+                    await _deviceRepository.SaveChanges(ct);
 
                 return GetStoredMqttCredentialResponse(credential);
             }
@@ -286,6 +297,7 @@ namespace GardensBack.Application.DeviceProvisioning.Services
             UpdateMqttCredential(credential, payload, request, response, now);
             credential.ProtectedCommandKey = _commandKeyProtector.Protect(request.BootstrapKey);
             deviceClaim.ProvisioningTokenConsumedAt = now;
+            device.ProvisioningState = ProvisioningState.Provisioned;
 
             await _deviceRepository.SaveChanges(ct);
             return response;

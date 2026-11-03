@@ -3,6 +3,7 @@ using GardensBack.Application.FirmwareReleases.Constants;
 using GardensBack.Application.FirmwareReleases.Dtos;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Text.Json;
 
 namespace GardensBack.Controllers
 {
@@ -27,6 +28,11 @@ namespace GardensBack.Controllers
         [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
         [Produces("application/json")]
         public async Task<ActionResult<FirmwareManifestResponse>> Get(string releaseId, CancellationToken ct)
-            => Ok(await _service.GetPublishedManifest(releaseId, ct));
+        {
+            FirmwareManifestResponse manifest = await _service.GetPublishedManifest(releaseId, ct);
+            byte[] content = JsonSerializer.SerializeToUtf8Bytes(manifest);
+
+            return File(content, "application/json");
+        }
     }
 }
