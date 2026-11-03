@@ -153,6 +153,8 @@ namespace GardensBack.Application.DeviceProvisioning.Services
             response.Validate();
             await _deviceRepository.SaveChanges(ct);
 
+            // llamar método para seed inicial de sensores y actuadores por microcontrolador
+
             return response;
         }
 

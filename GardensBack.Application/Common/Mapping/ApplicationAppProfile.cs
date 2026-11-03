@@ -1,5 +1,6 @@
 ﻿using AutoMapper;
 using GardensBack.Application.DeviceConnectivity.Dtos;
+using GardensBack.Application.DeviceInventory.Dtos;
 using GardensBack.Application.DeviceProvisioning.Constants;
 using GardensBack.Application.DeviceProvisioning.Dtos.Device;
 using GardensBack.Application.DeviceProvisioning.Dtos.Web;
@@ -154,6 +155,9 @@ namespace GardensBack.Application.Common.Mapping
                 .ForMember(x => x.DeviceId, o => o.MapFrom(x => x.MicrocontrollerDevice.DeviceId!))
                 .ForMember(x => x.ReleaseId, o => o.MapFrom(x => x.FirmwareRelease.ReleaseId))
                 .ForMember(x => x.TargetVersion, o => o.MapFrom(x => x.FirmwareRelease.Version));
+
+            CreateMap<Device, DeviceInventoryGeneralDto>()
+                .ReverseMap();
         }
     }
 }
