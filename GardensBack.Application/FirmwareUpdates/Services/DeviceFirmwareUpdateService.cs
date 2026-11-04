@@ -84,8 +84,12 @@ namespace GardensBack.Application.FirmwareUpdates.Services
                     throw new ConflictException("La secuencia de comandos OTA alcanzó el valor máximo permitido.");
 
                 DateTime now = DateTime.UtcNow;
+                long unixTimeSeconds = new DateTimeOffset(now).ToUnixTimeSeconds();
+                if (unixTimeSeconds <= 0 || unixTimeSeconds > uint.MaxValue)
+                    throw new ConflictException("No fue posible generar una versión válida para el comando OTA.");
+
                 DateTime expiresAt = now.AddMinutes(_options.CommandExpirationMinutes);
-                uint commandVersion = lastCommandVersion + 1;
+                uint commandVersion = Math.Max(lastCommandVersion + 1, (uint)unixTimeSeconds);
                 string requestId = Guid.NewGuid().ToString("N");
 
                 var update = new DeviceFirmwareUpdate

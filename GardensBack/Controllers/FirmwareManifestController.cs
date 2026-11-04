@@ -13,6 +13,7 @@ namespace GardensBack.Controllers
     /// <param name="service">Servicio de consulta de manifiestos.</param>
     [Route(FirmwareReleaseContract.ControllerRoute)]
     [ApiController]
+    [AllowAnonymous]
     public class FirmwareManifestController(IFirmwareManifestService service) : ControllerBase
     {
         private readonly IFirmwareManifestService _service = service;
@@ -23,7 +24,6 @@ namespace GardensBack.Controllers
         /// <param name="releaseId">Identificador público de la publicación.</param>
         /// <param name="ct">Token de cancelación de la solicitud.</param>
         /// <returns>El manifiesto OTA consumido por el dispositivo.</returns>
-        [AllowAnonymous]
         [HttpGet(FirmwareReleaseContract.ManifestRoute)]
         [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
         [Produces("application/json")]
@@ -41,7 +41,6 @@ namespace GardensBack.Controllers
         /// <param name="releaseId"></param>
         /// <param name="ct"></param>
         /// <returns></returns>
-        [AllowAnonymous]
         [HttpGet(FirmwareReleaseContract.ArtifactRoute)]
         public async Task<ActionResult<byte[]>> GetArtifact(string releaseId, CancellationToken ct)
         {
