@@ -25,5 +25,6 @@ namespace GardensBack.Domain.Entities
 
         // relaciones
         public ICollection<DeviceFirmwareUpdate> DeviceFirmwareUpdates { get; set; } = [];
+        public FirmwareArtifact? Artifact { get; set; }
     }
 }

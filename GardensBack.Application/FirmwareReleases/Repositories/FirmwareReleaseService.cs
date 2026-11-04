@@ -26,7 +26,7 @@ namespace GardensBack.Application.FirmwareReleases.Repositories
             if (await _repository.ExistsBoardVersion(request.Board, request.Version, ct))
                 throw new ConflictException("Ya existe esa combinación entre board + versión");
 
-            byte[] content = await ValidateArtifact(request.Artifact, request.SizeBytes, ct);
+            byte[] content = await ValidateArtifactFromHttpRequest(request.Artifact, request.SizeBytes, ct);
 
             ValidateHashFromArtifact(content, request.Sha256);
 
@@ -58,7 +58,7 @@ namespace GardensBack.Application.FirmwareReleases.Repositories
 
         public async Task<FirmwareReleaseResponse> GetByReleaseId(string releaseId, CancellationToken ct)
         {
-            FirmwareRelease release = await _repository.FindByReleaseId(releaseId, ct) ?? throw new NotFoundException("La publicación de firmware no fue encontrada.");
+            FirmwareRelease release = await _repository.FindByReleaseId(releaseId, false, ct) ?? throw new NotFoundException("La publicación de firmware no fue encontrada.");
 
             return _mapper.Map<FirmwareReleaseResponse>(release);
         }
@@ -67,7 +67,7 @@ namespace GardensBack.Application.FirmwareReleases.Repositories
         {
             ValidateReleaseId(releaseId);
 
-            FirmwareRelease foundRelease = await _repository.FindByReleaseId(releaseId, ct) ?? throw new NotFoundException("La publicación de firmware no fue encontrada.");
+            FirmwareRelease foundRelease = await _repository.FindByReleaseId(releaseId, true, ct) ?? throw new NotFoundException("La publicación de firmware no fue encontrada.");
 
             if (!foundRelease.Active)
                 throw new ConflictException("La publicación de firmware se encuentra inactiva.");
@@ -81,7 +81,14 @@ namespace GardensBack.Application.FirmwareReleases.Repositories
             if (foundRelease.Status != FirmwareReleaseStatus.Draft)
                 throw new ConflictException("La publicación no se encuentra en un estado válido para publicarse.");
 
-            await _validator.Validate(foundRelease, ct);
+            if (foundRelease.Artifact?.Content is byte[] content)
+            {
+                ValidateArtifactFromDb(content, foundRelease.SizeBytes);
+
+                ValidateHashFromArtifact(content, foundRelease.Sha256);
+            }
+            else
+                await _validator.Validate(foundRelease, ct);
 
             foundRelease.Status = FirmwareReleaseStatus.Published;
             foundRelease.PublishedAt = DateTime.UtcNow;
@@ -95,7 +102,7 @@ namespace GardensBack.Application.FirmwareReleases.Repositories
         {
             ValidateReleaseId(releaseId);
 
-            FirmwareRelease foundRelease = await _repository.FindByReleaseId(releaseId, ct) ?? throw new NotFoundException("Release no encontrado");
+            FirmwareRelease foundRelease = await _repository.FindByReleaseId(releaseId, false, ct) ?? throw new NotFoundException("Release no encontrado");
 
             if (foundRelease.Status == FirmwareReleaseStatus.Revoked)
                 return _mapper.Map<FirmwareReleaseResponse>(foundRelease);
@@ -114,7 +121,7 @@ namespace GardensBack.Application.FirmwareReleases.Repositories
         {
             request.Validate();
 
-            FirmwareRelease? foundRelease = await _repository.FindByReleaseId(request.ReleaseId, ct) ?? throw new NotFoundException("Firmware no encontrado");
+            FirmwareRelease? foundRelease = await _repository.FindByReleaseId(request.ReleaseId, false, ct) ?? throw new NotFoundException("Firmware no encontrado");
 
             if (foundRelease.Status != FirmwareReleaseStatus.Draft)
                 throw new ConflictException("Solo pueden modificarse publicaciones en estado Draft.");
@@ -129,6 +136,14 @@ namespace GardensBack.Application.FirmwareReleases.Repositories
             await _repository.SaveChanges(ct);
 
             return _mapper.Map<FirmwareReleaseResponse>(foundRelease);
+        }
+
+        public static byte[] ValidateArtifactFromDb(byte[] content, long sizeBytes)
+        {
+            if (content.LongLength != sizeBytes)
+                throw new ConflictException("El tamaño del firmware no coincide con el tamaño reportado.");
+            
+            return content;
         }
 
         private static void ValidateReleaseId(string releaseId)
@@ -148,7 +163,7 @@ namespace GardensBack.Application.FirmwareReleases.Repositories
                 throw new ValidationException("El ReleaseId contiene caracteres no permitidos.");
         }
 
-        private async static Task<byte[]> ValidateArtifact(IFormFile artifact, long sizeBytes, CancellationToken ct)
+        private async static Task<byte[]> ValidateArtifactFromHttpRequest(IFormFile artifact, long sizeBytes, CancellationToken ct)
         {
             await using var stream = artifact.OpenReadStream();
 

@@ -21,8 +21,15 @@ namespace GardensBack.Infrastructure.Persistance.Repositories
         public async Task<bool> ExistsReleaseId(string releasedId, CancellationToken ct)
             => await _db.FirmwareReleases.AnyAsync(x => x.ReleaseId == releasedId, ct);
 
-        public async Task<FirmwareRelease?> FindByReleaseId(string releaseId, CancellationToken ct)
-            => await _db.FirmwareReleases.FirstOrDefaultAsync(x => x.ReleaseId == releaseId, ct);
+        public async Task<FirmwareRelease?> FindByReleaseId(string releaseId, bool includeLastArtifact, CancellationToken ct)
+        {
+            IQueryable<FirmwareRelease> query = _db.FirmwareReleases;
+
+            if (includeLastArtifact)
+                query = query.Include(x => x.Artifact);
+            
+            return await query.FirstOrDefaultAsync(x => x.ReleaseId == releaseId, ct);
+        }
 
         public async Task<IReadOnlyList<FirmwareRelease>> GetAll(string? board, FirmwareReleaseStatus? status, CancellationToken ct)
             => await _db.FirmwareReleases.Where(x => (string.IsNullOrEmpty(board) || x.Board == board) && (!status.HasValue || x.Status == status.Value)).ToListAsync(ct);
