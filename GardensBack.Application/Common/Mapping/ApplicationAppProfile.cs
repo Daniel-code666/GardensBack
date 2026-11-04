@@ -133,7 +133,8 @@ namespace GardensBack.Application.Common.Mapping
                 .ForMember(x => x.DeviceFirmwareUpdates, o => o.Ignore())
                 .ForMember(x => x.Active, o => o.Ignore())
                 .ForMember(x => x.CreationDate, o => o.Ignore())
-                .ForMember(x => x.UpdateDate, o => o.Ignore());
+                .ForMember(x => x.UpdateDate, o => o.Ignore())
+                .ForMember(x => x.Artifact, o => o.Ignore());
 
             CreateMap<FirmwareRelease, FirmwareReleaseResponse>();
 
@@ -145,7 +146,8 @@ namespace GardensBack.Application.Common.Mapping
                 .ForMember(x => x.DeviceFirmwareUpdates, o => o.Ignore())
                 .ForMember(x => x.Active, o => o.Ignore())
                 .ForMember(x => x.CreationDate, o => o.Ignore())
-                .ForMember(x => x.UpdateDate, o => o.Ignore());
+                .ForMember(x => x.UpdateDate, o => o.Ignore())
+                .ForMember(x => x.Artifact, o => o.Ignore());
 
             CreateMap<FirmwareRelease, FirmwareManifestResponse>()
                 .ForMember(x => x.Type, o => o.MapFrom(_ => FirmwareReleaseContract.ManifestType))

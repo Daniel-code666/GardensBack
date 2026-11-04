@@ -24,7 +24,11 @@ namespace GardensBack.Application.FirmwareReleases.Repositories
             DeviceConnectivityConfiguration? deviceConfig = await _deviceConfig.GetDefault(ct)
                 ?? throw new ValidationException("No se encontró una configuración de conectividad por defecto.");
 
+            if (!deviceConfig.Active)
+                throw new ValidationException("La configuración de conectividad por defecto no se encuentra activa.");
+
             string scheme = deviceConfig.ApiUseTls ? Uri.UriSchemeHttps : Uri.UriSchemeHttp;
+            
 
             request.Validate();
 
@@ -36,10 +40,12 @@ namespace GardensBack.Application.FirmwareReleases.Repositories
 
             FirmwareRelease release = _mapper.Map<FirmwareRelease>(request);
 
+            string artifactPath = $"/api/FirmwareReleases/{Uri.EscapeDataString(release.ReleaseId)}/artifact";
+
             release.Status = FirmwareReleaseStatus.Draft;
             release.PublishedAt = null;
             release.Active = true;
-            release.FirmwareUrl = $"{scheme}://{deviceConfig.ApiHost}/{deviceConfig.ApiPort}/api/FirmwareReleases/{release.ReleaseId}/artifact";
+            release.FirmwareUrl = new UriBuilder(scheme, deviceConfig.ApiHost, deviceConfig.ApiPort, artifactPath).Uri.AbsoluteUri;
 
             _validator.ValidateRelease(release, ct);
             byte[] content = _validator.ValidateArtifactFromDb(release, await ConvertStreamToByteArray(request.Artifact, ct));
