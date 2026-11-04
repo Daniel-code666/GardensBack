@@ -33,7 +33,7 @@ namespace GardensBack.Application.FirmwareReleases.Dtos
         [RegularExpression(@"^(?:[0-9a-f]{2}){1,80}$")]
         public required string Signature { get; set; }
 
-        [Range(1, 1)]
+        [Range(2, 2)]
         public int ContractVersion { get; set; }
 
         [Required]

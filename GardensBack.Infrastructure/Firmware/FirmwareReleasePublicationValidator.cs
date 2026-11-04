@@ -1,6 +1,7 @@
 using GardensBack.Application.Abstractions;
 using GardensBack.Application.Common.Exceptions;
 using GardensBack.Application.FirmwareReleases.Configuration;
+using GardensBack.Application.FirmwareReleases.Constants;
 using GardensBack.Domain.Entities;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Options;
@@ -14,8 +15,6 @@ namespace GardensBack.Infrastructure.Firmware
 {
     public sealed class FirmwareReleasePublicationValidator(IOptions<FirmwareReleaseValidationOptions> options) : IFirmwareReleasePublicationValidator
     {
-        private const int SupportedContractVersion = 1;
-
         private readonly FirmwareReleaseValidationOptions _options = options.Value;
 
         public void ValidateRelease(FirmwareRelease release, CancellationToken ct)
@@ -43,7 +42,7 @@ namespace GardensBack.Infrastructure.Firmware
 
         private void ValidateMetadata(FirmwareRelease release)
         {
-            if (release.ContractVersion != SupportedContractVersion)
+            if (release.ContractVersion != FirmwareReleaseContract.Version)
                 throw new ValidationException("La versión del contrato de firmware no es compatible.");
 
             if (!IsValidIdentifier(release.ReleaseId))
@@ -101,7 +100,6 @@ namespace GardensBack.Infrastructure.Firmware
             AppendField(payload, release.Board);
             AppendField(payload, release.SizeBytes.ToString(CultureInfo.InvariantCulture));
             AppendField(payload, release.Sha256);
-            AppendField(payload, release.FirmwareUrl);
             return payload.ToString();
         }
 
