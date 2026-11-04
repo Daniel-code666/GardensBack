@@ -36,7 +36,7 @@ namespace GardensBack.Infrastructure.Persistance.Repositories
 
         public async Task<FirmwareRelease?> FindPublishedByReleaseId(string releaseId, bool includeLastArtifact, CancellationToken ct)
         {
-            IQueryable<FirmwareRelease> query = _db.FirmwareReleases.Where(x => x.ReleaseId == releaseId && x.Status == FirmwareReleaseStatus.Published);
+            IQueryable<FirmwareRelease> query = _db.FirmwareReleases.Where(x => x.ReleaseId == releaseId && x.Status == FirmwareReleaseStatus.Published && x.Active);
 
             if (includeLastArtifact)
                 query = query.Include(x => x.Artifact);

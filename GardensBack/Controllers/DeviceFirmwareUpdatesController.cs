@@ -8,7 +8,7 @@ using System.Security.Claims;
 namespace GardensBack.Controllers
 {
     /// <summary>
-    /// 
+    /// Controlador de las actualizaciones del firmware del esp
     /// </summary>
     [Route("api/[controller]")]
     [ApiController]
@@ -18,7 +18,8 @@ namespace GardensBack.Controllers
         private readonly IDeviceFirmwareUpdateService _service = service;
 
         /// <summary>
-        /// COntrolador de las actualizaciones del firmware del esp
+        /// Solicita una actualización de firmware para un dispositivo, valida el firmware y metadatos, genera un mensaje para rabbitmq que luego consume el esp 
+        /// y devuelve la respuesta con los datos de la actualización.
         /// </summary>
         /// <param name="request"></param>
         /// <param name="ct"></param>

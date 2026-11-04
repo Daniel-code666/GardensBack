@@ -29,11 +29,6 @@ namespace GardensBack.Application.FirmwareReleases.Dtos
         public required string Sha256 { get; set; }
 
         [Required]
-        [StringLength(512)]
-        [Url]
-        public required string FirmwareUrl { get; set; }
-
-        [Required]
         [StringLength(160)]
         [RegularExpression(@"^(?:[0-9a-f]{2}){1,80}$")]
         public required string Signature { get; set; }

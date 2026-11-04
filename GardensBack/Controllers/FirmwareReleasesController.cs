@@ -36,7 +36,7 @@ namespace GardensBack.Controllers
         /// <param name="ct">Token de cancelación de la solicitud.</param>
         /// <returns>La publicación de firmware actualizada.</returns>
         [HttpPut]
-        public async Task<ActionResult<FirmwareReleaseResponse>> Update([FromBody] UpdateFirmwareReleaseRequest request, CancellationToken ct)
+        public async Task<ActionResult<FirmwareReleaseResponse>> Update([FromForm] UpdateFirmwareReleaseRequest request, CancellationToken ct)
             => Ok(await _service.Update(request, ct));
 
         /// <summary>

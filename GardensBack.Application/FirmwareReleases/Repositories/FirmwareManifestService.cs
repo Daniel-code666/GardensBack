@@ -30,8 +30,7 @@ namespace GardensBack.Application.FirmwareReleases.Repositories
 
             if (foundFirmware.Artifact != null && foundFirmware.Artifact.Content is byte[] content)
             {
-                _validator.ValidateArtifactFromDb(content, foundFirmware.SizeBytes);
-                _validator.ValidateHashFromArtifact(content, foundFirmware.Sha256);
+                _validator.ValidateArtifactFromDb(foundFirmware, content);
 
                 return content;
             }

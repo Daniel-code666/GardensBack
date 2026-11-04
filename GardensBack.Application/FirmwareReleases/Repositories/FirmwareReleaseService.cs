@@ -1,21 +1,31 @@
 ﻿using AutoMapper;
 using GardensBack.Application.Abstractions;
 using GardensBack.Application.Common.Exceptions;
+using GardensBack.Application.DeviceConnectivity.Abstractions;
 using GardensBack.Application.FirmwareReleases.Abstractions;
 using GardensBack.Application.FirmwareReleases.Dtos;
 using GardensBack.Domain.Entities;
 using GardensBack.Domain.Enums;
+using Microsoft.AspNetCore.Http;
+using System.Reflection.Metadata;
 
 namespace GardensBack.Application.FirmwareReleases.Repositories
 {
-    public class FirmwareReleaseService(IFirmwareReleaseRepository repository, IFirmwareReleasePublicationValidator validator, IMapper mapper) : IFirmwareReleaseService
+    public class FirmwareReleaseService(IFirmwareReleaseRepository repository, IFirmwareReleasePublicationValidator validator,
+        IDeviceConnectivityConfigurationRepository deviceConfig, IMapper mapper) : IFirmwareReleaseService
     {
         private readonly IFirmwareReleaseRepository _repository = repository;
         private readonly IMapper _mapper = mapper;
         private readonly IFirmwareReleasePublicationValidator _validator = validator;
+        private readonly IDeviceConnectivityConfigurationRepository _deviceConfig = deviceConfig;
 
         public async Task<FirmwareReleaseResponse> Create(CreateFirmwareReleaseRequest request, bool publish, CancellationToken ct)
         {
+            DeviceConnectivityConfiguration? deviceConfig = await _deviceConfig.GetDefault(ct)
+                ?? throw new ValidationException("No se encontró una configuración de conectividad por defecto.");
+
+            string scheme = deviceConfig.ApiUseTls ? Uri.UriSchemeHttps : Uri.UriSchemeHttp;
+
             request.Validate();
 
             if (await _repository.ExistsReleaseId(request.ReleaseId, ct))
@@ -24,15 +34,15 @@ namespace GardensBack.Application.FirmwareReleases.Repositories
             if (await _repository.ExistsBoardVersion(request.Board, request.Version, ct))
                 throw new ConflictException("Ya existe esa combinación entre board + versión");
 
-            byte[] content = await _validator.ValidateArtifactFromHttpRequest(request.Artifact, request.SizeBytes, ct);
-
-            _validator.ValidateHashFromArtifact(content, request.Sha256);
-
             FirmwareRelease release = _mapper.Map<FirmwareRelease>(request);
 
             release.Status = FirmwareReleaseStatus.Draft;
             release.PublishedAt = null;
             release.Active = true;
+            release.FirmwareUrl = $"{scheme}://{deviceConfig.ApiHost}/{deviceConfig.ApiPort}/api/FirmwareReleases/{release.ReleaseId}/artifact";
+
+            _validator.ValidateRelease(release, ct);
+            byte[] content = _validator.ValidateArtifactFromDb(release, await ConvertStreamToByteArray(request.Artifact, ct));
 
             release = await _repository.Add(release, ct);
 
@@ -79,14 +89,11 @@ namespace GardensBack.Application.FirmwareReleases.Repositories
             if (foundRelease.Status != FirmwareReleaseStatus.Draft)
                 throw new ConflictException("La publicación no se encuentra en un estado válido para publicarse.");
 
-            if (foundRelease.Artifact?.Content is byte[] content)
-            {
-                _validator.ValidateArtifactFromDb(content, foundRelease.SizeBytes);
+            if (foundRelease.Artifact is null)
+                throw new ConflictException("La publicación no tiene un artefacto asociado.");
 
-                _validator.ValidateHashFromArtifact(content, foundRelease.Sha256);
-            }
-            else
-                await _validator.Validate(foundRelease, ct);
+            _validator.ValidateRelease(foundRelease, ct);
+            _validator.ValidateArtifactFromDb(foundRelease, foundRelease.Artifact.Content);
 
             foundRelease.Status = FirmwareReleaseStatus.Published;
             foundRelease.PublishedAt = DateTime.UtcNow;
@@ -119,7 +126,7 @@ namespace GardensBack.Application.FirmwareReleases.Repositories
         {
             request.Validate();
 
-            FirmwareRelease? foundRelease = await _repository.FindByReleaseId(request.ReleaseId, false, ct) ?? throw new NotFoundException("Firmware no encontrado");
+            FirmwareRelease? foundRelease = await _repository.FindByReleaseId(request.ReleaseId, true, ct) ?? throw new NotFoundException("Firmware no encontrado");
 
             if (foundRelease.Status != FirmwareReleaseStatus.Draft)
                 throw new ConflictException("Solo pueden modificarse publicaciones en estado Draft.");
@@ -129,7 +136,16 @@ namespace GardensBack.Application.FirmwareReleases.Repositories
             if (boardVersionChanged && await _repository.ExistsBoardVersion(request.Board, request.Version, ct))
                 throw new ConflictException("Ya existe esa versión para la placa indicada.");
 
+            if (foundRelease.Artifact is null)
+                throw new ConflictException("La publicación no tiene un artefacto asociado.");
+
             _mapper.Map(request, foundRelease);
+
+            _validator.ValidateRelease(foundRelease, ct);
+
+            byte[] content = _validator.ValidateArtifactFromDb(foundRelease, await ConvertStreamToByteArray(request.Artifact, ct));
+
+            foundRelease.Artifact.Content = content;
 
             await _repository.SaveChanges(ct);
 
@@ -161,5 +177,14 @@ namespace GardensBack.Application.FirmwareReleases.Repositories
                 ContentType = string.IsNullOrWhiteSpace(contentType) ? "application/octet-stream" : contentType,
                 FirmwareRelease = release
             };
+
+        private static async Task<byte[]> ConvertStreamToByteArray(IFormFile artifact, CancellationToken ct)
+        {
+            await using Stream stream = artifact.OpenReadStream();
+            using var memoryStream = new MemoryStream();
+            await stream.CopyToAsync(memoryStream, ct);
+
+            return memoryStream.ToArray();
+        }
     }
 }

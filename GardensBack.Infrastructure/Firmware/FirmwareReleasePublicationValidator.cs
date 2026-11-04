@@ -12,58 +12,36 @@ using System.Text;
 
 namespace GardensBack.Infrastructure.Firmware
 {
-    public sealed class FirmwareReleasePublicationValidator(
-        HttpClient httpClient,
-        IOptions<FirmwareReleaseValidationOptions> options) : IFirmwareReleasePublicationValidator
+    public sealed class FirmwareReleasePublicationValidator(IOptions<FirmwareReleaseValidationOptions> options) : IFirmwareReleasePublicationValidator
     {
         private const int SupportedContractVersion = 1;
 
-        private readonly HttpClient _httpClient = httpClient;
         private readonly FirmwareReleaseValidationOptions _options = options.Value;
 
-        public async Task Validate(FirmwareRelease release, CancellationToken ct)
+        public void ValidateRelease(FirmwareRelease release, CancellationToken ct)
         {
             ArgumentNullException.ThrowIfNull(release);
             ct.ThrowIfCancellationRequested();
 
-            Uri firmwareUri = ValidateMetadata(release);
+            ValidateMetadata(release);
             ValidateSignature(release);
-            await ValidateArtifact(release, firmwareUri, ct);
         }
 
-        public byte[] ValidateArtifactFromDb(byte[] content, long sizeBytes)
+        public byte[] ValidateArtifactFromDb(FirmwareRelease release, byte[] content)
         {
-            if (content.LongLength != sizeBytes)
+            if (content.LongLength != release.SizeBytes)
                 throw new ConflictException("El tamaño del firmware no coincide con el tamaño reportado.");
+
+            byte[] expectedHash = Convert.FromHexString(release.Sha256);
+            byte[] actualHash = SHA256.HashData(content);
+
+            if (!CryptographicOperations.FixedTimeEquals(expectedHash, actualHash))
+                throw new ValidationException("El SHA-256 del binario no coincide con el firmware registrado.");
 
             return content;
         }
 
-        public void ValidateHashFromArtifact(byte[] content, string requestHash)
-        {
-            var calculatedHash = Convert.ToHexString(SHA256.HashData(content)).ToLowerInvariant();
-
-            if (!string.Equals(calculatedHash, requestHash, StringComparison.OrdinalIgnoreCase))
-                throw new ConflictException("El hash del firmware no coincide con el hash reportado.");
-        }
-
-        public async Task<byte[]> ValidateArtifactFromHttpRequest(IFormFile artifact, long sizeBytes, CancellationToken ct)
-        {
-            await using var stream = artifact.OpenReadStream();
-
-            using var memoryStream = new MemoryStream();
-
-            await stream.CopyToAsync(memoryStream, ct);
-
-            byte[] content = memoryStream.ToArray();
-
-            if (content.LongLength != sizeBytes)
-                throw new ConflictException("El tamaño del firmware no coincide con el tamaño reportado.");
-
-            return content;
-        }
-
-        private Uri ValidateMetadata(FirmwareRelease release)
+        private void ValidateMetadata(FirmwareRelease release)
         {
             if (release.ContractVersion != SupportedContractVersion)
                 throw new ValidationException("La versión del contrato de firmware no es compatible.");
@@ -94,11 +72,11 @@ namespace GardensBack.Infrastructure.Firmware
                 throw new ValidationException("La URL del firmware no es válida.");
 
             bool isHttps = firmwareUri.Scheme.Equals(Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase);
-            bool isAllowedHttp = _options.AllowHttp && firmwareUri.Scheme.Equals(Uri.UriSchemeHttp, StringComparison.OrdinalIgnoreCase);
+            bool isAllowedHttp = _options.AllowHttp &&
+                firmwareUri.Scheme.Equals(Uri.UriSchemeHttp, StringComparison.OrdinalIgnoreCase);
+
             if (!isHttps && !isAllowedHttp)
                 throw new ValidationException("La URL del firmware debe utilizar un esquema permitido.");
-
-            return firmwareUri;
         }
 
         private void ValidateSignature(FirmwareRelease release)
@@ -112,67 +90,6 @@ namespace GardensBack.Infrastructure.Firmware
 
             if (!ecdsa.VerifyHash(digest, signature, DSASignatureFormat.Rfc3279DerSequence))
                 throw new ValidationException("La firma del firmware no corresponde a los metadatos de la publicación.");
-        }
-
-        private async Task ValidateArtifact(FirmwareRelease release, Uri firmwareUri, CancellationToken ct)
-        {
-            using CancellationTokenSource timeout = CancellationTokenSource.CreateLinkedTokenSource(ct);
-            timeout.CancelAfter(TimeSpan.FromSeconds(_options.DownloadTimeoutSeconds));
-
-            try
-            {
-                using HttpRequestMessage request = new(HttpMethod.Get, firmwareUri);
-                using HttpResponseMessage response = await _httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, timeout.Token);
-
-                if (response.StatusCode != HttpStatusCode.OK)
-                    throw new ValidationException("No fue posible descargar el firmware desde la URL registrada.");
-
-                if (response.Content.Headers.ContentLength is long contentLength && contentLength != release.SizeBytes)
-                    throw new ValidationException("El tamaño anunciado por el servidor no coincide con el firmware registrado.");
-
-                await using Stream stream = await response.Content.ReadAsStreamAsync(timeout.Token);
-                using IncrementalHash hash = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
-
-                byte[] buffer = ArrayPool<byte>.Shared.Rent(81920);
-                long totalBytes = 0;
-
-                try
-                {
-                    int bytesRead;
-                    while ((bytesRead = await stream.ReadAsync(buffer.AsMemory(0, buffer.Length), timeout.Token)) > 0)
-                    {
-                        totalBytes += bytesRead;
-                        if (totalBytes > release.SizeBytes)
-                            throw new ValidationException("El binario descargado supera el tamaño registrado.");
-
-                        hash.AppendData(buffer, 0, bytesRead);
-                    }
-                }
-                finally
-                {
-                    ArrayPool<byte>.Shared.Return(buffer, clearArray: true);
-                }
-
-                if (totalBytes != release.SizeBytes)
-                    throw new ValidationException("El tamaño del binario descargado no coincide con el firmware registrado.");
-
-                byte[] expectedHash = Convert.FromHexString(release.Sha256);
-                byte[] actualHash = hash.GetHashAndReset();
-                if (!CryptographicOperations.FixedTimeEquals(expectedHash, actualHash))
-                    throw new ValidationException("El SHA-256 del binario no coincide con el firmware registrado.");
-            }
-            catch (OperationCanceledException) when (!ct.IsCancellationRequested)
-            {
-                throw new ValidationException("Se agotó el tiempo permitido para descargar el firmware.");
-            }
-            catch (HttpRequestException)
-            {
-                throw new ValidationException("No fue posible establecer conexión con la URL del firmware.");
-            }
-            catch (IOException)
-            {
-                throw new ValidationException("La descarga del firmware se interrumpió antes de completarse.");
-            }
         }
 
         private static string BuildCanonicalPayload(FirmwareRelease release)

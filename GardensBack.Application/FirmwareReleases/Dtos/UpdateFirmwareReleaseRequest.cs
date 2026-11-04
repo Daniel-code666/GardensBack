@@ -1,4 +1,5 @@
 ﻿using GardensBack.Application.Common.Validation;
+using Microsoft.AspNetCore.Http;
 using System.ComponentModel.DataAnnotations;
 
 namespace GardensBack.Application.FirmwareReleases.Dtos
@@ -28,17 +29,15 @@ namespace GardensBack.Application.FirmwareReleases.Dtos
         public required string Sha256 { get; set; }
 
         [Required]
-        [StringLength(512)]
-        [Url]
-        public required string FirmwareUrl { get; set; }
-
-        [Required]
         [StringLength(160)]
         [RegularExpression(@"^(?:[0-9a-f]{2}){1,80}$")]
         public required string Signature { get; set; }
 
         [Range(1, 1)]
         public int ContractVersion { get; set; }
+
+        [Required]
+        public required IFormFile Artifact { get; set; }
 
         public void Validate()
             => ValidationUtilities.ValidateObject(this);

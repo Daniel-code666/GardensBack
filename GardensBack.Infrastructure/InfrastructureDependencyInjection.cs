@@ -28,7 +28,7 @@ namespace GardensBack.Domain
             services.AddScoped<IDeviceInventoryRepository, DeviceInventoryRepository>();
             services.AddHostedService<MqttInventoryConsumer>();
             services.AddScoped<IFirmwareReleaseRepository, FirmwareReleaseRepository>();
-            services.AddHttpClient<IFirmwareReleasePublicationValidator, FirmwareReleasePublicationValidator>();
+            services.AddScoped<IFirmwareReleasePublicationValidator, FirmwareReleasePublicationValidator>();
             services.AddScoped<IDeviceFirmwareUpdateRepository, DeviceFirmwareUpdateRepository>();
             services.AddSingleton<IDeviceCommandKeyProtector, DeviceCommandKeyProtector>();
             services.AddSingleton<IOtaCommandAuthenticationService, OtaCommandAuthenticationService>();

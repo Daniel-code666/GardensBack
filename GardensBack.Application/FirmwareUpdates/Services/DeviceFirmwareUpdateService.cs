@@ -54,13 +54,15 @@ namespace GardensBack.Application.FirmwareUpdates.Services
             FirmwareRelease release = await _firmwareReleaseRepository.FindByReleaseId(request.ReleaseId, true, ct)
                 ?? throw new NotFoundException("La publicación de firmware no fue encontrada.");
 
-            if (release.Artifact?.Content is byte[] content)
+            if (release.Artifact != null && release.Artifact?.Content is byte[] content)
             {
-                _validator.ValidateArtifactFromDb(content, release.SizeBytes);
-                _validator.ValidateHashFromArtifact(content, release.Sha256);
+                _validator.ValidateArtifactFromDb(release, content);
             }
+            else
+                throw new NotFoundException("No se encontro el artefacto para la publicacion solicitada");
 
             ValidateRelease(device, release);
+            _validator.ValidateRelease(release, ct);
 
             if (await _repository.FindInProgress(device.Id, ct) is not null)
                 throw new ConflictException("El dispositivo ya tiene una actualización de firmware en curso.");
