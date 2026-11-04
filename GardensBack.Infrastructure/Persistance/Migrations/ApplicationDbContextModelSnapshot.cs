@@ -33,6 +33,9 @@ namespace GardensBack.Infrastructure.Persistance.Migrations
                     b.Property<bool>("Active")
                         .HasColumnType("boolean");
 
+                    b.Property<bool?>("Available")
+                        .HasColumnType("boolean");
+
                     b.Property<int>("ConnectionType")
                         .HasColumnType("integer");
 
@@ -44,6 +47,9 @@ namespace GardensBack.Infrastructure.Persistance.Migrations
 
                     b.Property<int>("DeviceType")
                         .HasColumnType("integer");
+
+                    b.Property<DateTime?>("LastSeenAt")
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<int>("LocalDeviceId")
                         .HasColumnType("integer");
@@ -406,6 +412,39 @@ namespace GardensBack.Infrastructure.Persistance.Migrations
                     b.HasIndex("DeviceId", "CreationDate");
 
                     b.ToTable("DeviceTelemetry", "Data");
+                });
+
+            modelBuilder.Entity("GardensBack.Domain.Entities.FirmwareArtifact", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<byte[]>("Content")
+                        .IsRequired()
+                        .HasColumnType("bytea");
+
+                    b.Property<string>("ContentType")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("FileName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<int>("FirmwareReleaseId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("FirmwareReleaseId")
+                        .IsUnique();
+
+                    b.ToTable("FirmwareArtifact", "Data");
                 });
 
             modelBuilder.Entity("GardensBack.Domain.Entities.FirmwareRelease", b =>
@@ -797,6 +836,17 @@ namespace GardensBack.Infrastructure.Persistance.Migrations
                         .IsRequired();
 
                     b.Navigation("Device");
+                });
+
+            modelBuilder.Entity("GardensBack.Domain.Entities.FirmwareArtifact", b =>
+                {
+                    b.HasOne("GardensBack.Domain.Entities.FirmwareRelease", "FirmwareRelease")
+                        .WithMany()
+                        .HasForeignKey("FirmwareReleaseId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("FirmwareRelease");
                 });
 
             modelBuilder.Entity("GardensBack.Domain.Entities.MicrocontrollerDevice", b =>

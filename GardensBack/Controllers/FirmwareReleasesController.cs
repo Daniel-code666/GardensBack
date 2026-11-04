@@ -22,11 +22,12 @@ namespace GardensBack.Controllers
         /// Crea una publicación de firmware en estado borrador.
         /// </summary>
         /// <param name="request">Metadatos y datos de integridad del firmware.</param>
+        /// <param name="publish">Indica si la publicación debe ser publicada inmediatamente.</param>
         /// <param name="ct">Token de cancelación de la solicitud.</param>
         /// <returns>La publicación de firmware creada.</returns>
-        [HttpPost]
-        public async Task<ActionResult<FirmwareReleaseResponse>> Create([FromBody] CreateFirmwareReleaseRequest request, CancellationToken ct)
-            => Ok(await _service.Create(request, ct));
+        [HttpPost("{publish}")]
+        public async Task<ActionResult<FirmwareReleaseResponse>> Create([FromForm] CreateFirmwareReleaseRequest request, [FromRoute] bool publish, CancellationToken ct)
+            => Ok(await _service.Create(request, publish, ct));
 
         /// <summary>
         /// Actualiza una publicación de firmware que permanece en estado borrador.

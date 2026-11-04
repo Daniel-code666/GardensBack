@@ -9,11 +9,10 @@ namespace GardensBack.Infrastructure.Persistance.Repositories
     {
         private readonly ApplicationDbContext _db = db;
 
-        public async Task Add(FirmwareRelease release, CancellationToken ct)
+        public async Task<FirmwareRelease> Add(FirmwareRelease release, CancellationToken ct)
         {
-            await _db.FirmwareReleases.AddAsync(release, ct);
-
-            await _db.SaveChangesAsync(ct);
+            var entry = await _db.FirmwareReleases.AddAsync(release, ct);
+            return entry.Entity;
         }
 
         public async Task<bool> ExistsBoardVersion(string board, string version, CancellationToken ct)
@@ -30,6 +29,9 @@ namespace GardensBack.Infrastructure.Persistance.Repositories
 
         public async Task<FirmwareRelease?> FindPublishedByReleaseId(string releaseId, CancellationToken ct)
             => await _db.FirmwareReleases.AsNoTracking().SingleOrDefaultAsync(x => x.ReleaseId == releaseId && x.Active && x.Status == FirmwareReleaseStatus.Published, ct);
+
+        public async Task AddFirmwareArtifact(FirmwareArtifact artifact, CancellationToken ct)
+            => await _db.FirmwareArtifacts.AddAsync(artifact, ct);
 
         public async Task<int> SaveChanges(CancellationToken ct)
             => await _db.SaveChangesAsync(ct);

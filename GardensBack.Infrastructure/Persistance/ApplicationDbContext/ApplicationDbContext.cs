@@ -17,6 +17,7 @@ namespace GardensBack.Infrastructure.Persistance
         public DbSet<FirmwareRelease> FirmwareReleases => Set<FirmwareRelease>();
         public DbSet<DeviceFirmwareUpdate> FirmwareUpdates => Set<DeviceFirmwareUpdate>();
         public DbSet<DeviceConnectivityConfiguration> DeviceConnectivityConfigurations => Set<DeviceConnectivityConfiguration>();
+        public DbSet<FirmwareArtifact> FirmwareArtifacts => Set<FirmwareArtifact>();
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

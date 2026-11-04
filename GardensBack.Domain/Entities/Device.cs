@@ -18,6 +18,8 @@ namespace GardensBack.Domain.Entities
         public MeasurementType? MeasurementType { get; set; }
         public MeasurementUnit? MeasurementUnit { get; set; }
         public DeviceType DeviceType { get; set; }
+        public bool? Available { get; set; }
+        public DateTime? LastSeenAt { get; set; }
 
         // relaciones
         [ForeignKey(nameof(MicroCtrlDevice))]

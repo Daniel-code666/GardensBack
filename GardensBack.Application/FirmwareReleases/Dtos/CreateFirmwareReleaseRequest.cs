@@ -1,4 +1,5 @@
 ﻿using GardensBack.Application.Common.Validation;
+using Microsoft.AspNetCore.Http;
 using System.ComponentModel.DataAnnotations;
 
 namespace GardensBack.Application.FirmwareReleases.Dtos
@@ -39,6 +40,9 @@ namespace GardensBack.Application.FirmwareReleases.Dtos
 
         [Range(1, 1)]
         public int ContractVersion { get; set; }
+
+        [Required]
+        public required IFormFile Artifact { get; set; }
 
         public void Validate()
             => ValidationUtilities.ValidateObject(this);

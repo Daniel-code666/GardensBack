@@ -5,6 +5,8 @@ using GardensBack.Application.FirmwareReleases.Abstractions;
 using GardensBack.Application.FirmwareReleases.Dtos;
 using GardensBack.Domain.Entities;
 using GardensBack.Domain.Enums;
+using Microsoft.AspNetCore.Http;
+using System.Security.Cryptography;
 
 namespace GardensBack.Application.FirmwareReleases.Repositories
 {
@@ -14,7 +16,7 @@ namespace GardensBack.Application.FirmwareReleases.Repositories
         private readonly IMapper _mapper = mapper;
         private readonly IFirmwareReleasePublicationValidator _validator = validator;
 
-        public async Task<FirmwareReleaseResponse> Create(CreateFirmwareReleaseRequest request, CancellationToken ct)
+        public async Task<FirmwareReleaseResponse> Create(CreateFirmwareReleaseRequest request, bool publish, CancellationToken ct)
         {
             request.Validate();
 
@@ -24,13 +26,29 @@ namespace GardensBack.Application.FirmwareReleases.Repositories
             if (await _repository.ExistsBoardVersion(request.Board, request.Version, ct))
                 throw new ConflictException("Ya existe esa combinación entre board + versión");
 
+            byte[] content = await ValidateArtifact(request.Artifact, request.SizeBytes, ct);
+
+            ValidateHashFromArtifact(content, request.Sha256);
+
             FirmwareRelease release = _mapper.Map<FirmwareRelease>(request);
 
             release.Status = FirmwareReleaseStatus.Draft;
             release.PublishedAt = null;
             release.Active = true;
 
-            await _repository.Add(release, ct);
+            release = await _repository.Add(release, ct);
+
+            if (publish)
+            {
+                release.Status = FirmwareReleaseStatus.Published;
+                release.PublishedAt = DateTime.UtcNow;
+            }
+
+            FirmwareArtifact artifact = BuildArtifact(content, request.Artifact.FileName, request.Artifact.ContentType, release);
+
+            await _repository.AddFirmwareArtifact(artifact, ct);
+
+            await _repository.SaveChanges(ct);
 
             return _mapper.Map<FirmwareReleaseResponse>(release);
         }
@@ -128,6 +146,39 @@ namespace GardensBack.Application.FirmwareReleases.Repositories
 
             if (!valid)
                 throw new ValidationException("El ReleaseId contiene caracteres no permitidos.");
+        }
+
+        private async static Task<byte[]> ValidateArtifact(IFormFile artifact, long sizeBytes, CancellationToken ct)
+        {
+            await using var stream = artifact.OpenReadStream();
+
+            using var memoryStream = new MemoryStream();
+
+            await stream.CopyToAsync(memoryStream, ct);
+
+            byte[] content = memoryStream.ToArray();
+
+            if (content.LongLength != sizeBytes)
+                throw new ConflictException("El tamaño del firmware no coincide con el tamaño reportado.");
+
+            return content;
+        }
+
+        private static FirmwareArtifact BuildArtifact(byte[] content, string fileName, string contentType, FirmwareRelease release)
+            => new()
+            {
+                Content = content,
+                FileName = fileName,
+                ContentType = string.IsNullOrWhiteSpace(contentType) ? "application/octet-stream" : contentType,
+                FirmwareRelease = release
+            };
+
+        private static void ValidateHashFromArtifact(byte[] content, string requestHash)
+        {
+            var calculatedHash = Convert.ToHexString(SHA256.HashData(content)).ToLowerInvariant();
+
+            if (!string.Equals(calculatedHash, requestHash, StringComparison.OrdinalIgnoreCase))
+                throw new ConflictException("El hash del firmware no coincide con el hash reportado.");
         }
     }
 }
