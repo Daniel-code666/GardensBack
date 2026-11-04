@@ -3,6 +3,7 @@ using GardensBack.Application.Abstractions;
 using GardensBack.Application.Common.Exceptions;
 using GardensBack.Application.DeviceConnectivity.Abstractions;
 using GardensBack.Application.FirmwareReleases.Constants;
+using GardensBack.Application.FirmwareReleases.Repositories;
 using GardensBack.Application.FirmwareUpdates.Abstractions;
 using GardensBack.Application.FirmwareUpdates.Configuration;
 using GardensBack.Application.FirmwareUpdates.Constants;
@@ -24,6 +25,7 @@ namespace GardensBack.Application.FirmwareUpdates.Services
         IOtaCommandAuthenticationService authenticationService,
         IDeviceControlPublisher controlPublisher,
         IMapper mapper,
+        IFirmwareReleasePublicationValidator validator,
         IOptions<FirmwareUpdateOptions> options) : IDeviceFirmwareUpdateService
     {
         private static readonly Regex SemanticVersionPattern = new(@"^\d+\.\d+\.\d+$", RegexOptions.CultureInvariant);
@@ -34,6 +36,7 @@ namespace GardensBack.Application.FirmwareUpdates.Services
         private readonly IOtaCommandAuthenticationService _authenticationService = authenticationService;
         private readonly IDeviceControlPublisher _controlPublisher = controlPublisher;
         private readonly IMapper _mapper = mapper;
+        private readonly IFirmwareReleasePublicationValidator _validator = validator;
         private readonly FirmwareUpdateOptions _options = options.Value;
 
         public async Task<DeviceFirmwareUpdateResponse> RequestUpdate(RequestDeviceFirmwareUpdateRequest request, int requestedByUserId, CancellationToken ct)
@@ -48,8 +51,14 @@ namespace GardensBack.Application.FirmwareUpdates.Services
 
             ValidateDevice(device, requestedByUserId);
 
-            FirmwareRelease release = await _firmwareReleaseRepository.FindByReleaseId(request.ReleaseId, ct)
+            FirmwareRelease release = await _firmwareReleaseRepository.FindByReleaseId(request.ReleaseId, true, ct)
                 ?? throw new NotFoundException("La publicación de firmware no fue encontrada.");
+
+            if (release.Artifact?.Content is byte[] content)
+            {
+                _validator.ValidateArtifactFromDb(content, release.SizeBytes);
+                _validator.ValidateHashFromArtifact(content, release.Sha256);
+            }
 
             ValidateRelease(device, release);
 

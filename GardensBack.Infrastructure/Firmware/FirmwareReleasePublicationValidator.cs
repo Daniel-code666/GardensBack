@@ -2,6 +2,7 @@ using GardensBack.Application.Abstractions;
 using GardensBack.Application.Common.Exceptions;
 using GardensBack.Application.FirmwareReleases.Configuration;
 using GardensBack.Domain.Entities;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Options;
 using System.Buffers;
 using System.Globalization;
@@ -28,6 +29,38 @@ namespace GardensBack.Infrastructure.Firmware
             Uri firmwareUri = ValidateMetadata(release);
             ValidateSignature(release);
             await ValidateArtifact(release, firmwareUri, ct);
+        }
+
+        public byte[] ValidateArtifactFromDb(byte[] content, long sizeBytes)
+        {
+            if (content.LongLength != sizeBytes)
+                throw new ConflictException("El tamaño del firmware no coincide con el tamaño reportado.");
+
+            return content;
+        }
+
+        public void ValidateHashFromArtifact(byte[] content, string requestHash)
+        {
+            var calculatedHash = Convert.ToHexString(SHA256.HashData(content)).ToLowerInvariant();
+
+            if (!string.Equals(calculatedHash, requestHash, StringComparison.OrdinalIgnoreCase))
+                throw new ConflictException("El hash del firmware no coincide con el hash reportado.");
+        }
+
+        public async Task<byte[]> ValidateArtifactFromHttpRequest(IFormFile artifact, long sizeBytes, CancellationToken ct)
+        {
+            await using var stream = artifact.OpenReadStream();
+
+            using var memoryStream = new MemoryStream();
+
+            await stream.CopyToAsync(memoryStream, ct);
+
+            byte[] content = memoryStream.ToArray();
+
+            if (content.LongLength != sizeBytes)
+                throw new ConflictException("El tamaño del firmware no coincide con el tamaño reportado.");
+
+            return content;
         }
 
         private Uri ValidateMetadata(FirmwareRelease release)

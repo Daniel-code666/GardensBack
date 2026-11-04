@@ -34,5 +34,19 @@ namespace GardensBack.Controllers
 
             return File(content, "application/json");
         }
+
+        /// <summary>
+        /// Obtiene el .bin almacenado en db según el releaseId
+        /// </summary>
+        /// <param name="releaseId"></param>
+        /// <param name="ct"></param>
+        /// <returns></returns>
+        [AllowAnonymous]
+        [HttpGet(FirmwareReleaseContract.ArtifactRoute)]
+        public async Task<ActionResult<byte[]>> GetArtifact(string releaseId, CancellationToken ct)
+        {
+            byte[] artifact = await _service.GetArtifactToDownload(releaseId, ct);
+            return File(artifact, "application/octet-stream");
+        }
     }
 }

@@ -5,8 +5,6 @@ using GardensBack.Application.FirmwareReleases.Abstractions;
 using GardensBack.Application.FirmwareReleases.Dtos;
 using GardensBack.Domain.Entities;
 using GardensBack.Domain.Enums;
-using Microsoft.AspNetCore.Http;
-using System.Security.Cryptography;
 
 namespace GardensBack.Application.FirmwareReleases.Repositories
 {
@@ -26,9 +24,9 @@ namespace GardensBack.Application.FirmwareReleases.Repositories
             if (await _repository.ExistsBoardVersion(request.Board, request.Version, ct))
                 throw new ConflictException("Ya existe esa combinación entre board + versión");
 
-            byte[] content = await ValidateArtifactFromHttpRequest(request.Artifact, request.SizeBytes, ct);
+            byte[] content = await _validator.ValidateArtifactFromHttpRequest(request.Artifact, request.SizeBytes, ct);
 
-            ValidateHashFromArtifact(content, request.Sha256);
+            _validator.ValidateHashFromArtifact(content, request.Sha256);
 
             FirmwareRelease release = _mapper.Map<FirmwareRelease>(request);
 
@@ -83,9 +81,9 @@ namespace GardensBack.Application.FirmwareReleases.Repositories
 
             if (foundRelease.Artifact?.Content is byte[] content)
             {
-                ValidateArtifactFromDb(content, foundRelease.SizeBytes);
+                _validator.ValidateArtifactFromDb(content, foundRelease.SizeBytes);
 
-                ValidateHashFromArtifact(content, foundRelease.Sha256);
+                _validator.ValidateHashFromArtifact(content, foundRelease.Sha256);
             }
             else
                 await _validator.Validate(foundRelease, ct);
@@ -138,14 +136,6 @@ namespace GardensBack.Application.FirmwareReleases.Repositories
             return _mapper.Map<FirmwareReleaseResponse>(foundRelease);
         }
 
-        public static byte[] ValidateArtifactFromDb(byte[] content, long sizeBytes)
-        {
-            if (content.LongLength != sizeBytes)
-                throw new ConflictException("El tamaño del firmware no coincide con el tamaño reportado.");
-            
-            return content;
-        }
-
         private static void ValidateReleaseId(string releaseId)
         {
             if (string.IsNullOrWhiteSpace(releaseId))
@@ -163,22 +153,6 @@ namespace GardensBack.Application.FirmwareReleases.Repositories
                 throw new ValidationException("El ReleaseId contiene caracteres no permitidos.");
         }
 
-        private async static Task<byte[]> ValidateArtifactFromHttpRequest(IFormFile artifact, long sizeBytes, CancellationToken ct)
-        {
-            await using var stream = artifact.OpenReadStream();
-
-            using var memoryStream = new MemoryStream();
-
-            await stream.CopyToAsync(memoryStream, ct);
-
-            byte[] content = memoryStream.ToArray();
-
-            if (content.LongLength != sizeBytes)
-                throw new ConflictException("El tamaño del firmware no coincide con el tamaño reportado.");
-
-            return content;
-        }
-
         private static FirmwareArtifact BuildArtifact(byte[] content, string fileName, string contentType, FirmwareRelease release)
             => new()
             {
@@ -187,13 +161,5 @@ namespace GardensBack.Application.FirmwareReleases.Repositories
                 ContentType = string.IsNullOrWhiteSpace(contentType) ? "application/octet-stream" : contentType,
                 FirmwareRelease = release
             };
-
-        private static void ValidateHashFromArtifact(byte[] content, string requestHash)
-        {
-            var calculatedHash = Convert.ToHexString(SHA256.HashData(content)).ToLowerInvariant();
-
-            if (!string.Equals(calculatedHash, requestHash, StringComparison.OrdinalIgnoreCase))
-                throw new ConflictException("El hash del firmware no coincide con el hash reportado.");
-        }
     }
 }

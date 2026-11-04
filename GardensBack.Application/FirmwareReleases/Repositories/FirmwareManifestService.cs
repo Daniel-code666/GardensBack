@@ -7,18 +7,36 @@ using GardensBack.Domain.Entities;
 
 namespace GardensBack.Application.FirmwareReleases.Repositories
 {
-    public class FirmwareManifestService(IFirmwareReleaseRepository firmwareRelease, IMapper mapper) : IFirmwareManifestService
+    public class FirmwareManifestService(IFirmwareReleaseRepository firmwareRelease, IFirmwareReleasePublicationValidator validator, IMapper mapper) : IFirmwareManifestService
     {
         private readonly IFirmwareReleaseRepository _firmwareRelease = firmwareRelease;
+        private readonly IFirmwareReleasePublicationValidator _validator = validator;
         private readonly IMapper _mapper = mapper;
 
         public async Task<FirmwareManifestResponse> GetPublishedManifest(string releaseId, CancellationToken ct)
         {
             ValidateReleaseId(releaseId);
 
-            FirmwareRelease foundFirmware = await _firmwareRelease.FindPublishedByReleaseId(releaseId, ct) ?? throw new NotFoundException("Publicacion no encontrada");
+            FirmwareRelease foundFirmware = await _firmwareRelease.FindPublishedByReleaseId(releaseId, false, ct) ?? throw new NotFoundException("Publicacion no encontrada");
 
             return _mapper.Map<FirmwareManifestResponse>(foundFirmware);
+        }
+
+        public async Task<byte[]> GetArtifactToDownload(string releaseId, CancellationToken ct)
+        {
+            ValidateReleaseId(releaseId);
+
+            FirmwareRelease foundFirmware = await _firmwareRelease.FindPublishedByReleaseId(releaseId, true, ct) ?? throw new NotFoundException("Publicacion no encontrada");
+
+            if (foundFirmware.Artifact != null && foundFirmware.Artifact.Content is byte[] content)
+            {
+                _validator.ValidateArtifactFromDb(content, foundFirmware.SizeBytes);
+                _validator.ValidateHashFromArtifact(content, foundFirmware.Sha256);
+
+                return content;
+            }
+
+            throw new NotFoundException("No se encontro el artefacto para la publicacion solicitada");
         }
 
         private static void ValidateReleaseId(string releaseId)
