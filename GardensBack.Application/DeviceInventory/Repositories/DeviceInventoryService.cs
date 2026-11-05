@@ -7,6 +7,7 @@ using GardensBack.Application.DeviceInventory.Dtos;
 using GardensBack.Application.FirmwareUpdates.Abstractions;
 using GardensBack.Domain.Entities;
 using GardensBack.Domain.Enums;
+using System.Net;
 using System.Security.AccessControl;
 
 namespace GardensBack.Application.DeviceInventory.Repositories
@@ -24,6 +25,10 @@ namespace GardensBack.Application.DeviceInventory.Repositories
 
             MicrocontrollerDevice foundMicrocontroller = await _deviceRepository.FindById(device.MicrocontrollerDeviceId, true, ct)
                 ?? throw new NotFoundException("Microcontrolador no encontrado.");
+
+            bool hasAnyI2cValue = device.I2cSdaPin.HasValue || device.I2cSclPin.HasValue || device.I2cAddress.HasValue;
+
+            bool hasCompleteI2cValue = device.I2cSdaPin.HasValue && device.I2cSclPin.HasValue && device.I2cAddress.HasValue;
 
             if (device.DeviceType == DeviceType.Actuator && (device.MeasurementType.HasValue || device.MeasurementUnit.HasValue))
                 throw new ValidationException("Dispositivos de tipo actuador no pueden tener tipo o unidad de medición.");
@@ -45,7 +50,13 @@ namespace GardensBack.Application.DeviceInventory.Repositories
                 throw new ConflictException("Ya existe un dispositivo con el mismo pin en este microcontrolador.");
 
             if (foundMicrocontroller.Devices.Any(x => x.Name == device.Name))
-                throw new ConflictException("Ya existe un dispositivo con el mismo nombre en este microcontrolador."); 
+                throw new ConflictException("Ya existe un dispositivo con el mismo nombre en este microcontrolador.");
+
+            if (hasAnyI2cValue && !hasCompleteI2cValue)
+                throw new ValidationException("La configuración I2C debe incluir SDA, SCL y dirección.");
+
+            if (hasAnyI2cValue && device.ConnectionType != ConnectionType.I2C)
+                throw new ValidationException("La configuración I2C solo es válida para conexiones I2C.");
 
             Device deviceToSave = _mapper.Map<Device>(device);
 
@@ -189,6 +200,9 @@ namespace GardensBack.Application.DeviceInventory.Repositories
                     MeasurementUnit = deviceItem.MeasurementUnit,
                     DeviceType = deviceItem.DeviceType,
                     Available = deviceItem.Available,
+                    I2cSdaPin = deviceItem.I2cSdaPin,
+                    I2cSclPin = deviceItem.I2cSclPin,
+                    I2cAddress = deviceItem.I2cAddress,
                     LastSeenAt = now,
                     CreationDate = now,
                     UpdateDate = now,
@@ -214,7 +228,6 @@ namespace GardensBack.Application.DeviceInventory.Repositories
                         microcontroller.Devices.Add(new Device
                         {
                             LocalDeviceId = device.LocalDeviceId,
-                            CustomName = device.Name,
                             Name = device.Name,
                             DevicePin = device.Esp32Pin,
                             ConnectionType = device.ConnectionType,
@@ -222,6 +235,9 @@ namespace GardensBack.Application.DeviceInventory.Repositories
                             MeasurementUnit = device.MeasurementUnit,
                             DeviceType = device.DeviceType,
                             Available = device.Available,
+                            I2cSdaPin = device.I2cSdaPin,
+                            I2cSclPin = device.I2cSclPin,
+                            I2cAddress = device.I2cAddress,
                             LastSeenAt = now,
                             CreationDate = now,
                             UpdateDate = now,
@@ -238,6 +254,9 @@ namespace GardensBack.Application.DeviceInventory.Repositories
                         foundDevice.MeasurementUnit = device.MeasurementUnit;
                         foundDevice.DeviceType = device.DeviceType;
                         foundDevice.Available = device.Available;
+                        foundDevice.I2cSdaPin = device.I2cSdaPin;
+                        foundDevice.I2cSclPin = device.I2cSclPin;
+                        foundDevice.I2cAddress = device.I2cAddress;
                         foundDevice.LastSeenAt = now;
                         foundDevice.UpdateDate = now;
                         devicesChanged = true;
@@ -252,7 +271,8 @@ namespace GardensBack.Application.DeviceInventory.Repositories
         {
             if (deviceItem.Name != device.Name || deviceItem.Esp32Pin != device.DevicePin
                 || deviceItem.ConnectionType != device.ConnectionType || deviceItem.MeasurementUnit != device.MeasurementUnit
-                || deviceItem.Available != device.Available)
+                || deviceItem.Available != device.Available || deviceItem.I2cSdaPin != device.I2cSdaPin || deviceItem.I2cSclPin != device.I2cSclPin
+                || deviceItem.I2cAddress != device.I2cAddress)
                 return true;
 
             return false;

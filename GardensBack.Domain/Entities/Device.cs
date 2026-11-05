@@ -22,6 +22,9 @@ namespace GardensBack.Domain.Entities
         public DeviceType DeviceType { get; set; }
         public bool? Available { get; set; }
         public DateTime? LastSeenAt { get; set; }
+        public int? I2cSdaPin { get; set; }
+        public int? I2cSclPin { get; set; }
+        public int? I2cAddress { get; set; }
 
         // relaciones
         [ForeignKey(nameof(MicroCtrlDevice))]

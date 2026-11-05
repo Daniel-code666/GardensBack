@@ -52,6 +52,15 @@ namespace GardensBack.Infrastructure.Persistance.Migrations
                     b.Property<int>("DeviceType")
                         .HasColumnType("integer");
 
+                    b.Property<int?>("I2cAddress")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("I2cSclPin")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("I2cSdaPin")
+                        .HasColumnType("integer");
+
                     b.Property<DateTime?>("LastSeenAt")
                         .HasColumnType("timestamp with time zone");
 

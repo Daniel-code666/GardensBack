@@ -33,6 +33,15 @@ namespace GardensBack.Application.DeviceInventory.Dtos
 
         public bool Available { get; set; }
 
+        [Range(0, 48)]
+        public int? I2cSdaPin { get; set; }
+
+        [Range(0, 48)]
+        public int? I2cSclPin { get; set; }
+
+        [Range(0, 127)]
+        public int? I2cAddress { get; set; }
+
         public void Validate()
             => ValidationUtilities.ValidateObject(this);
     }
