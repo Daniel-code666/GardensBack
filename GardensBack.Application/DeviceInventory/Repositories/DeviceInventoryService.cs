@@ -187,7 +187,7 @@ namespace GardensBack.Application.DeviceInventory.Repositories
         public async Task ProcessTelemetry(string microcontrollerDeviceId, DeviceTelemetryMessage telemetry, CancellationToken ct)
         {
             // procesar datos, validar y guardar en db
-            if (telemetry.SensorReadings.Count > 0 && telemetry.ActuatorReadings.Count > 0)
+            if (telemetry.SensorReadings.Count > 0 || telemetry.ActuatorReadings.Count > 0)
             {
                 MicrocontrollerDevice? microcontroller = await _deviceRepository.FindByDeviceId(microcontrollerDeviceId, true, ct);
 
