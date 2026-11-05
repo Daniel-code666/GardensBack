@@ -47,6 +47,16 @@ namespace GardensBack.Controllers
             => Ok(await _service.GetAllDevicesByMicrocontrollerId(request, ct));
 
         /// <summary>
+        /// Devuelve una lista con los dispositivos y su telemetría según su id. Se puede limitar el número de resultados devueltos
+        /// </summary>
+        /// <param name="request"></param>
+        /// <param name="ct"></param>
+        /// <returns></returns>
+        [HttpGet("GetDevicesWithTelemetry")]
+        public async Task<ActionResult<IEnumerable<DeviceTelemetryDto>>> GetTelemetryForDevices([FromBody] GetTelemetryForDevicesDto request, CancellationToken ct)
+            => Ok(await _service.GetTelemetryForDevices(request, ct));
+
+        /// <summary>
         /// Cambia el estado de un dispositivo
         /// </summary>
         /// <param name="request"></param>
