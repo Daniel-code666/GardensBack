@@ -1,4 +1,5 @@
 ﻿using GardensBack.Application.DeviceInventory.Dtos;
+using GardensBack.Domain.Entities;
 
 namespace GardensBack.Application.DeviceInventory.Abstractions
 {
@@ -11,5 +12,7 @@ namespace GardensBack.Application.DeviceInventory.Abstractions
         Task<DeviceInventoryGeneralDto?> GetDeviceById(int deviceId, CancellationToken ct);
         Task<DeviceInventoryGeneralDto?> GetDeviceByLocalId(GetDeviceByLocalIdDto request, CancellationToken ct);
         Task<IReadOnlyCollection<DeviceInventoryGeneralDto>> GetAllDevicesByMicrocontrollerId(DeviceInventoryFilters request, CancellationToken ct);
+        Task ProcessTelemetry(string microcontrollerDeviceId,DeviceTelemetryMessage telemetry, CancellationToken ct);
+        Task<IEnumerable<DeviceTelemetryDto>> GetTelemetryForDevices(GetTelemetryForDevicesDto devicesDto, CancellationToken ct);
     }
 }

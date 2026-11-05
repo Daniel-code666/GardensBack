@@ -49,6 +49,16 @@ namespace GardensBack.Infrastructure.Persistance.Repositories
                 .SingleOrDefaultAsync(x => x.LocalDeviceId == request.LocalDeviceId && x.MicroCtrlDeviceId == request.MicrocontrollerId
                     && x.DeviceType == request.DeviceType && (request.MeasurementType == null || x.MeasurementType == request.MeasurementType), ct);
 
+        public async Task AddTelemetry(DeviceTelemetry telemetry, CancellationToken ct)
+            => await _db.DeviceTelemetries.AddAsync(telemetry, ct);
+
+        public async Task<IEnumerable<Device>> GetDevicesWithTelemetry(int[] devicesId, int itemPerRequest, CancellationToken ct)
+            => await _db.Devices.AsNoTracking().Include(x => x.DeviceTelemetries.OrderByDescending(t => t.CreationDate).Take(itemPerRequest))
+                .Where(x => devicesId.Contains(x.Id)).ToListAsync(ct);
+
+        public async Task<IEnumerable<DeviceTelemetry>> GetTelemetryForDevices(int[] devicesIds, int itemPerRequest, CancellationToken ct)
+            => await _db.DeviceTelemetries.AsNoTracking().Where(x => devicesIds.Contains(x.DeviceId)).OrderByDescending(x => x.CreationDate).Take(itemPerRequest).ToListAsync(ct);
+
         public async Task<int> SaveChanges(CancellationToken ct)
             => await _db.SaveChangesAsync(ct);
 

@@ -184,6 +184,64 @@ namespace GardensBack.Application.DeviceInventory.Repositories
             => await  _deviceRepository.GetDeviceByLocalId(request, ct) is Device foundDevice ? 
                 _mapper.Map<DeviceInventoryGeneralDto>(foundDevice) : throw new NotFoundException("Dispositivo no encontrado.");
 
+        public async Task ProcessTelemetry(string microcontrollerDeviceId, DeviceTelemetryMessage telemetry, CancellationToken ct)
+        {
+            // procesar datos, validar y guardar en db
+            if (telemetry.SensorReadings.Count > 0 && telemetry.ActuatorReadings.Count > 0)
+            {
+                MicrocontrollerDevice? microcontroller = await _deviceRepository.FindByDeviceId(microcontrollerDeviceId, true, ct);
+
+                if (microcontroller is null || microcontroller.Devices.Count == 0)
+                    return;
+
+                // iterar sobre los devices del microcontrolador, localizarlo en la telemetría y crear su registro de telemetría
+                foreach(SensorReadingMessage sensorTelemetry in telemetry.SensorReadings)
+                {
+                    Device? foundDevice = microcontroller.Devices.SingleOrDefault(x => x.LocalDeviceId == sensorTelemetry.Id && x.MicroCtrlDeviceId == microcontroller.Id
+                        && x.MeasurementType == sensorTelemetry.MeasurementType && x.MeasurementUnit == sensorTelemetry.MeasurementUnit);
+
+                    if (foundDevice is null)
+                        continue;
+
+                    // armar  objeto de deviceTelemetry
+                    DeviceTelemetry deviceTelemetry = _mapper.Map<SensorReadingMessage, DeviceTelemetry>(sensorTelemetry);
+                    deviceTelemetry.ActuatorMode = null;
+                    deviceTelemetry.State = null;
+                    deviceTelemetry.DeviceId = foundDevice.Id;
+
+                    //  TODO OBTENER O GENERAR EL REQUEST ID
+
+                    await _deviceRepository.AddTelemetry(deviceTelemetry, ct);
+                }
+
+                foreach(ActuatorReadingMessage actuatorReading in telemetry.ActuatorReadings)
+                {
+                    Device? foundDevice = microcontroller.Devices.SingleOrDefault(x => x.LocalDeviceId == actuatorReading.Id && x.MicroCtrlDeviceId == microcontroller.Id
+                        && x.ConnectionType == actuatorReading.ConnType && x.Name == actuatorReading.Name);
+
+                    if (foundDevice is null)
+                        continue;
+
+                    DeviceTelemetry deviceTelemetry = _mapper.Map<ActuatorReadingMessage, DeviceTelemetry>(actuatorReading);
+                    deviceTelemetry.Value = 0;
+                    deviceTelemetry.DeviceId = foundDevice.Id;
+
+                    //  TODO OBTENER O GENERAR EL REQUEST ID
+
+                    await _deviceRepository.AddTelemetry(deviceTelemetry, ct);
+                }
+
+                await _deviceRepository.SaveChanges(ct);
+            }
+        }
+
+        public async Task<IEnumerable<DeviceTelemetryDto>> GetTelemetryForDevices(GetTelemetryForDevicesDto devicesDto, CancellationToken ct)
+        {
+            IEnumerable<Device> foundDevices = await _deviceRepository.GetDevicesWithTelemetry(devicesDto.DevicesIds, devicesDto.ItemPerRequest, ct);
+
+            return _mapper.Map<IEnumerable<DeviceTelemetryDto>>(foundDevices);
+        }
+
         private static bool UpdateMicrocontrollerDevices(MicrocontrollerDevice microcontroller, IEnumerable<DeviceInventoryItemMessage> devices)
         {
             DateTime now = DateTime.UtcNow;

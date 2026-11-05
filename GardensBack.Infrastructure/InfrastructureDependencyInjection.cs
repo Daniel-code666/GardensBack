@@ -26,7 +26,6 @@ namespace GardensBack.Domain
             services.AddSingleton<IClaimResponseSigner, ClaimResponseSigner>();
             services.AddSingleton<IMqttCredentialEnvelopeService, MqttCredentialEnvelopeService>();
             services.AddScoped<IDeviceInventoryRepository, DeviceInventoryRepository>();
-            services.AddHostedService<MqttInventoryConsumer>();
             services.AddScoped<IFirmwareReleaseRepository, FirmwareReleaseRepository>();
             services.AddScoped<IFirmwareReleasePublicationValidator, FirmwareReleasePublicationValidator>();
             services.AddScoped<IDeviceFirmwareUpdateRepository, DeviceFirmwareUpdateRepository>();
@@ -34,6 +33,8 @@ namespace GardensBack.Domain
             services.AddSingleton<IOtaCommandAuthenticationService, OtaCommandAuthenticationService>();
             services.AddScoped<IDeviceControlPublisher, MqttDeviceControlPublisher>();
             services.AddHostedService<MqttFirmwareUpdateStatusConsumer>();
+            services.AddHostedService<MqttInventoryConsumer>();
+            services.AddHostedService<MqttTelemetryConsumer>();
 
             return services;
         }

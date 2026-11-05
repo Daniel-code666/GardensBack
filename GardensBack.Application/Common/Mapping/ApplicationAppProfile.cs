@@ -164,6 +164,37 @@ namespace GardensBack.Application.Common.Mapping
             CreateMap<DeviceInventoryItemMessage, DeviceInventoryGeneralDto>()
                 .ForMember(x => x.CustomName, o => o.Ignore())
                 .ReverseMap();
+
+            CreateMap<SensorReadingMessage, DeviceTelemetry>()
+                .ForMember(x => x.Id, o => o.Ignore())
+                .ForMember(x => x.DeviceId, o => o.Ignore())
+                .ForMember(x => x.Device, o => o.Ignore())
+                .ForMember(x => x.Value, o => o.MapFrom(x => x.Value))
+                .ForMember(x => x.Source, o => o.MapFrom(x => TelemetrySource.PeriodicTelemetry));
+
+            CreateMap<ActuatorReadingMessage, DeviceTelemetry>()
+                .ForMember(x => x.Id, o => o.Ignore())
+                .ForMember(x => x.DeviceId, o => o.Ignore())
+                .ForMember(x => x.Device, o => o.Ignore())
+                .ForMember(x => x.State, o => o.MapFrom(x => x.State))
+                .ForMember(x => x.ActuatorMode, o => o.MapFrom(x => x.Mode))
+                .ForMember(x => x.Source, o => o.MapFrom(x => TelemetrySource.PeriodicTelemetry));
+
+            CreateMap<Device, DeviceTelemetryDeviceDto>();
+
+            CreateMap<DeviceTelemetry, DeviceTelemetryReadingDto>()
+                .ForMember(
+                    destination => destination.RecordedAtUtc,
+                    options => options.MapFrom(source => source.CreationDate));
+
+            CreateMap<Device, DeviceTelemetryDto>()
+                .ForMember(
+                    destination => destination.Device,
+                    options => options.MapFrom(source => source))
+                .ForMember(
+                    destination => destination.Telemetry,
+                    options => options.MapFrom(source =>
+                        source.DeviceTelemetries));
         }
     }
 }

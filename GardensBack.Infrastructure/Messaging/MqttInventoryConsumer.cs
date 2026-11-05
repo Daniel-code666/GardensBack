@@ -63,10 +63,7 @@ namespace GardensBack.Infrastructure.Messaging
 
                 if (!inventory.DeviceId.Equals(deviceId, StringComparison.Ordinal))
                 {
-                    _logger.LogWarning(
-                        "El DeviceId del tópico {TopicDeviceId} no coincide con el payload {PayloadDeviceId}.",
-                        deviceId,
-                        inventory.DeviceId);
+                    _logger.LogWarning("El DeviceId del tópico {TopicDeviceId} no coincide con el payload {PayloadDeviceId}.", deviceId, inventory.DeviceId);
 
                     return;
                 }

@@ -13,6 +13,9 @@ namespace GardensBack.Application.Abstractions
         Task<Device?> GetDeviceById(int deviceId, CancellationToken ct);
         Task<IEnumerable<Device>> GetDevicesByIds(int[] deviceIds, CancellationToken ct);
         Task<Device?> GetDeviceByLocalId(GetDeviceByLocalIdDto request, CancellationToken ct);
+        Task AddTelemetry(DeviceTelemetry telemetry, CancellationToken ct);
+        Task<IEnumerable<Device>> GetDevicesWithTelemetry(int[] devicesIds, int itemPerRequest, CancellationToken ct);
+        Task<IEnumerable<DeviceTelemetry>> GetTelemetryForDevices(int[] devicesIds, int itemPerRequest, CancellationToken ct);
         Task<int> SaveChanges(CancellationToken ct);
     }
 }
