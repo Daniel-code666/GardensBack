@@ -160,6 +160,10 @@ namespace GardensBack.Application.Common.Mapping
 
             CreateMap<Device, DeviceInventoryGeneralDto>()
                 .ReverseMap();
+
+            CreateMap<DeviceInventoryItemMessage, DeviceInventoryGeneralDto>()
+                .ForMember(x => x.CustomName, o => o.Ignore())
+                .ReverseMap();
         }
     }
 }

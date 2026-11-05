@@ -12,6 +12,8 @@ namespace GardensBack.Domain.Entities
         [Key]
         public int Id { get; set; }
         public int LocalDeviceId { get; set; }
+        [StringLength(100)]
+        public string? CustomName { get; set; }
         public required string Name { get; set; }
         public int? DevicePin { get; set; }
         public ConnectionType ConnectionType { get; set; }

@@ -10,6 +10,8 @@ namespace GardensBack.Application.DeviceInventory.Dtos
         public int LocalDeviceId { get; set; }
         [Required]
         public required string Name { get; set; }
+        [StringLength(100)]
+        public string? CustomName { get; set; }
         public int? DevicePin { get; set; }
         public ConnectionType ConnectionType { get; set; }
         public MeasurementType? MeasurementType { get; set; }

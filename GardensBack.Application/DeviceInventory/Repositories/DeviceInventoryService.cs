@@ -1,12 +1,13 @@
-﻿using GardensBack.Application.Abstractions;
+﻿using AutoMapper;
+using GardensBack.Application.Abstractions;
 using GardensBack.Application.Common.Exceptions;
 using GardensBack.Application.DeviceInventory.Abstractions;
+using GardensBack.Application.DeviceInventory.Constants;
 using GardensBack.Application.DeviceInventory.Dtos;
 using GardensBack.Application.FirmwareUpdates.Abstractions;
 using GardensBack.Domain.Entities;
 using GardensBack.Domain.Enums;
-using GardensBack.Application.DeviceInventory.Constants;
-using AutoMapper;
+using System.Security.AccessControl;
 
 namespace GardensBack.Application.DeviceInventory.Repositories
 {
@@ -37,7 +38,8 @@ namespace GardensBack.Application.DeviceInventory.Repositories
             Device deviceToSave = _mapper.Map<Device>(device);
 
             await _deviceRepository.AddDevice(deviceToSave, ct);
-            return device;
+            await _deviceRepository.SaveChanges(ct);
+            return _mapper.Map<DeviceInventoryGeneralDto>(deviceToSave);
         }
 
         public async Task<DeviceInventoryGeneralDto> ChangeDeviceState(int deviceId, bool state, CancellationToken ct)
@@ -48,6 +50,7 @@ namespace GardensBack.Application.DeviceInventory.Repositories
                 return _mapper.Map<DeviceInventoryGeneralDto>(foundDevice);
 
             foundDevice.Active = state;
+            foundDevice.UpdateDate = DateTime.UtcNow;
             await _deviceRepository.SaveChanges(ct);
             return _mapper.Map<DeviceInventoryGeneralDto>(foundDevice);
         }
@@ -69,7 +72,7 @@ namespace GardensBack.Application.DeviceInventory.Repositories
             foreach (DeviceInventoryItemMessage item in inventory.Devices)
                 item.Validate();
 
-            MicrocontrollerDevice? foundDevice = await _deviceRepository.FindByDeviceId(inventory.DeviceId, ct);
+            MicrocontrollerDevice? foundDevice = await _deviceRepository.FindByDeviceId(inventory.DeviceId, true, ct);
 
             if (foundDevice is null || !foundDevice.Active)
                 return;
@@ -85,16 +88,19 @@ namespace GardensBack.Application.DeviceInventory.Repositories
                 changed = true;
             }
 
+            // actualizar los dispositivos reportados por el microcontrolador
+            bool devicesChanged = UpdateMicrocontrollerDevices(foundDevice, inventory.Devices);
+
             DeviceFirmwareUpdate? update = await _firmwareUpdateRepository.FindAwaitingInventory(foundDevice.Id, inventory.FirmwareVersion, ct);
+
             if (update is not null && update.InventoryConfirmedAt is null)
             {
                 DateTime now = DateTime.UtcNow;
                 update.InventoryConfirmedAt = now;
                 changed = true;
-
             }
 
-            if (changed)
+            if (changed || devicesChanged)
                 await _deviceRepository.SaveChanges(ct);
 
             if (update is not null)
@@ -108,7 +114,8 @@ namespace GardensBack.Application.DeviceInventory.Repositories
             if (!device.Id.HasValue)
                 throw new ValidationException("El Id del dispositivo es obligatorio para actualizarlo.");
 
-            Device foundDevice = await _deviceRepository.GetDeviceById(device.Id.Value, ct) ?? throw new NotFoundException("Dispositivo no encontrado.");
+            Device foundDevice = await _deviceRepository.GetDeviceById(device.Id.Value, ct)
+                ?? throw new NotFoundException("Dispositivo no encontrado.");
 
             if (device.DeviceType == DeviceType.Actuator && (device.MeasurementType.HasValue || device.MeasurementUnit.HasValue))
                 throw new ValidationException("Dispositivos de tipo actuador no pueden tener tipo o unidad de medición.");
@@ -129,11 +136,119 @@ namespace GardensBack.Application.DeviceInventory.Repositories
             if (device.DevicePin != foundDevice.DevicePin)
                 throw new ValidationException("No se puede cambiar el pin del dispositivo.");
 
-            _mapper.Map<DeviceInventoryGeneralDto, Device>(device, foundDevice);
+            string? customName = string.IsNullOrWhiteSpace(device.CustomName) ? null : device.CustomName.Trim();
+
+            bool changed = CheckIfDeviceIsChangedFromManualUpdate(foundDevice, device);
+
+            if (!changed)
+                return _mapper.Map<DeviceInventoryGeneralDto>(foundDevice);
+
+            device.CustomName = customName;
+            SetDeviceUpdateProperties(foundDevice, device);
 
             await _deviceRepository.SaveChanges(ct);
 
-            return device;
+            return _mapper.Map<DeviceInventoryGeneralDto>(foundDevice);
+        }
+
+        private static bool UpdateMicrocontrollerDevices(MicrocontrollerDevice microcontroller, IEnumerable<DeviceInventoryItemMessage> devices)
+        {
+            DateTime now = DateTime.UtcNow;
+
+            if (microcontroller.Devices.Count == 0)
+            {
+                microcontroller.Devices = devices.Select(deviceItem => new Device
+                {
+                    LocalDeviceId = deviceItem.LocalDeviceId,
+                    Name = deviceItem.Name,
+                    DevicePin = deviceItem.Esp32Pin,
+                    ConnectionType = deviceItem.ConnectionType,
+                    MeasurementType = deviceItem.MeasurementType,
+                    MeasurementUnit = deviceItem.MeasurementUnit,
+                    DeviceType = deviceItem.DeviceType,
+                    Available = deviceItem.Available,
+                    LastSeenAt = now,
+                    CreationDate = now,
+                    UpdateDate = now,
+                    MicroCtrlDevice = microcontroller
+                }).ToHashSet();
+
+                return true;
+            }
+            else if (microcontroller.Devices.Count >= 1)
+            {
+                bool devicesChanged = false;
+
+                // recorrer los dispositivos desde inventory.devices
+                // ubicar los dispositivos que coincidan en ambas listas, la de microcontrolador y la de inventory.devices, y actualizar sus propiedades
+                foreach (DeviceInventoryItemMessage device in devices)
+                {
+                    Device? foundDevice = microcontroller.Devices.SingleOrDefault(x => x.LocalDeviceId == device.LocalDeviceId && x.MeasurementType == device.MeasurementType
+                        && x.DeviceType == device.DeviceType);
+
+                    // evaluar si foundDevice es null, si es null entonces se agrega
+                    if (foundDevice == null)
+                    {
+                        microcontroller.Devices.Add(new Device
+                        {
+                            LocalDeviceId = device.LocalDeviceId,
+                            Name = device.Name,
+                            DevicePin = device.Esp32Pin,
+                            ConnectionType = device.ConnectionType,
+                            MeasurementType = device.MeasurementType,
+                            MeasurementUnit = device.MeasurementUnit,
+                            DeviceType = device.DeviceType,
+                            Available = device.Available,
+                            LastSeenAt = now,
+                            CreationDate = now,
+                            UpdateDate = now,
+                            MicroCtrlDevice = microcontroller
+                        });
+                        devicesChanged = true;
+                    }
+                    else if (CheckIfDeviceIsChanged(foundDevice, device)) // si existe y hay diferencias entonces se actualizan
+                    {
+                        foundDevice.Name = device.Name;
+                        foundDevice.DevicePin = device.Esp32Pin;
+                        foundDevice.ConnectionType = device.ConnectionType;
+                        foundDevice.MeasurementType = device.MeasurementType;
+                        foundDevice.MeasurementUnit = device.MeasurementUnit;
+                        foundDevice.DeviceType = device.DeviceType;
+                        foundDevice.Available = device.Available;
+                        foundDevice.LastSeenAt = now;
+                        foundDevice.UpdateDate = now;
+                        devicesChanged = true;
+                    }
+                }
+                return devicesChanged;
+            }
+            return false;
+        }
+
+        private static bool CheckIfDeviceIsChanged(Device device, DeviceInventoryItemMessage deviceItem)
+        {
+            if (deviceItem.Name != device.Name || deviceItem.Esp32Pin != device.DevicePin
+                || deviceItem.ConnectionType != device.ConnectionType || deviceItem.MeasurementUnit != device.MeasurementUnit
+                || deviceItem.Available != device.Available)
+                return true;
+
+            return false;
+        }
+
+        private static bool CheckIfDeviceIsChangedFromManualUpdate(Device device, DeviceInventoryGeneralDto update)
+        {
+            return device.LocalDeviceId != update.LocalDeviceId || !string.Equals(device.CustomName, update.CustomName, StringComparison.Ordinal) 
+                || device.ConnectionType != update.ConnectionType || device.MeasurementType != update.MeasurementType || device.MeasurementUnit != update.MeasurementUnit;
+        }
+
+        private static void SetDeviceUpdateProperties(Device device, DeviceInventoryGeneralDto update)
+        {
+            device.LocalDeviceId = update.LocalDeviceId;
+            device.CustomName = update.CustomName;
+            device.ConnectionType = update.ConnectionType;
+            device.MeasurementType = update.MeasurementType;
+            device.MeasurementUnit = update.MeasurementUnit;
+            device.UpdateDate = DateTime.UtcNow;
         }
     }
 }

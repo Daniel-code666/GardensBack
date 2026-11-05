@@ -57,7 +57,7 @@ namespace GardensBack.Controllers
             => Ok(await _service.ChangeDeviceState(deviceId, state, ct));
 
         /// <summary>
-        /// Actualiza un sensor/Actuador, no se puede actualizar el tipo de dispositivo
+        /// Actualiza los datos editables de un sensor o actuador.
         /// </summary>
         /// <param name="device"></param>
         /// <param name="ct"></param>

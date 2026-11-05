@@ -8,8 +8,14 @@ namespace GardensBack.Infrastructure.Persistance.Repositories
     {
         private readonly ApplicationDbContext _db = db;
 
-        public async Task<MicrocontrollerDevice?> FindByDeviceId(string deviceId, CancellationToken ct)
-            => await _db.MicrocontrollerDevices.SingleOrDefaultAsync(x => x.DeviceId == deviceId, ct);
+        public async Task<MicrocontrollerDevice?> FindByDeviceId(string deviceId, bool includeDevices, CancellationToken ct)
+        {
+            var query = _db.MicrocontrollerDevices.AsQueryable();
+            if (includeDevices)
+                query = query.Include(x => x.Devices);
+
+            return await query.SingleOrDefaultAsync(x => x.DeviceId == deviceId, ct);
+        }
 
         public async Task<Device> AddDevice(Device device, CancellationToken ct)
         {
@@ -25,8 +31,8 @@ namespace GardensBack.Infrastructure.Persistance.Repositories
                 .Where(x => x.Active && x.MicroCtrlDeviceId == microCtrlId && (devicesIds == null || devicesIds.Contains(x.Id))).ToListAsync(ct);
 
         public async Task<Device?> GetDeviceById(int deviceId, CancellationToken ct)
-            => await _db.Devices.Include(x => x.DeviceTelemetries).Include(x => x.MicroCtrlDevice)
-                .SingleOrDefaultAsync(x => x.Id == deviceId && x.Active, ct);
+            => await _db.Devices.Include(x => x.MicroCtrlDevice)
+                .SingleOrDefaultAsync(x => x.Id == deviceId, ct);
 
         public async Task<MicrocontrollerDevice?> FindById(int microCtrlId, CancellationToken ct)
             => await _db.MicrocontrollerDevices.Include(x => x.Devices).SingleOrDefaultAsync(x => x.Id == microCtrlId, ct);
