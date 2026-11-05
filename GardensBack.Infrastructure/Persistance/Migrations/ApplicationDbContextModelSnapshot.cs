@@ -42,6 +42,10 @@ namespace GardensBack.Infrastructure.Persistance.Migrations
                     b.Property<DateTime>("CreationDate")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<string>("CustomName")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
                     b.Property<int?>("DevicePin")
                         .HasColumnType("integer");
 
@@ -841,8 +845,8 @@ namespace GardensBack.Infrastructure.Persistance.Migrations
             modelBuilder.Entity("GardensBack.Domain.Entities.FirmwareArtifact", b =>
                 {
                     b.HasOne("GardensBack.Domain.Entities.FirmwareRelease", "FirmwareRelease")
-                        .WithMany()
-                        .HasForeignKey("FirmwareReleaseId")
+                        .WithOne("Artifact")
+                        .HasForeignKey("GardensBack.Domain.Entities.FirmwareArtifact", "FirmwareReleaseId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
@@ -889,6 +893,8 @@ namespace GardensBack.Infrastructure.Persistance.Migrations
 
             modelBuilder.Entity("GardensBack.Domain.Entities.FirmwareRelease", b =>
                 {
+                    b.Navigation("Artifact");
+
                     b.Navigation("DeviceFirmwareUpdates");
                 });
 

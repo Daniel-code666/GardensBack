@@ -1,6 +1,6 @@
 ﻿using GardensBack.Application.DeviceInventory.Abstractions;
 using GardensBack.Application.DeviceInventory.Dtos;
-using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace GardensBack.Controllers
@@ -10,6 +10,7 @@ namespace GardensBack.Controllers
     /// </summary>
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize]
     public class DeviceInventoryController(IDeviceInventoryService service) : ControllerBase
     {
         private readonly IDeviceInventoryService _service = service;
@@ -37,24 +38,23 @@ namespace GardensBack.Controllers
         /// <summary>
         /// Devuelve los dispositivos asociados al microcontrolador especificado. Se puede filtrar por un conjunto de ids de dispositivos.
         /// </summary>
-        /// <param name="microCtrlId"></param>
-        /// <param name="devicesIds"></param>
+        /// <param name="request"></param>
         /// <param name="ct"></param>
         /// <returns></returns>
-        [HttpGet("GetAllDevicesByMicroControllerId/{microCtrlId}")]
-        public async Task<ActionResult<IReadOnlyCollection<DeviceInventoryGeneralDto>>> GetAllDevicesByMicrocontrollerId([FromRoute] int microCtrlId, [FromQuery] int[]? devicesIds, CancellationToken ct)
-            => Ok(await _service.GetAllDevicesByMicrocontrollerId(microCtrlId, devicesIds, ct));
+        [HttpGet("GetDevices")]
+        public async Task<ActionResult<IReadOnlyCollection<DeviceInventoryGeneralDto>>> GetAllDevicesByMicrocontrollerId([FromBody] DeviceInventoryFilters request,
+            CancellationToken ct)
+            => Ok(await _service.GetAllDevicesByMicrocontrollerId(request, ct));
 
         /// <summary>
         /// Cambia el estado de un dispositivo
         /// </summary>
-        /// <param name="deviceId"></param>
-        /// <param name="state"></param>
+        /// <param name="request"></param>
         /// <param name="ct"></param>
         /// <returns></returns>
-        [HttpPut("ChangeDeviceState/{deviceId}/{state}")]
-        public async Task<ActionResult<DeviceInventoryGeneralDto>> ChangeDeviceState([FromRoute] int deviceId, [FromRoute] bool state, CancellationToken ct)
-            => Ok(await _service.ChangeDeviceState(deviceId, state, ct));
+        [HttpPut("SetDeviceState")]
+        public async Task<ActionResult<DeviceInventoryGeneralDto>> SetDeviceState(SetDevicesStateDto request, CancellationToken ct)
+            => Ok(await _service.SetDeviceState(request.DevicesIds, request.State, ct));
 
         /// <summary>
         /// Actualiza los datos editables de un sensor o actuador.

@@ -17,6 +17,7 @@ namespace GardensBack.Application.DeviceInventory.Dtos
         public MeasurementType? MeasurementType { get; set; }
         public MeasurementUnit? MeasurementUnit { get; set; }
         public DeviceType DeviceType { get; set; }
+        public required int MicrocontrollerDeviceId { get; set; }
 
         public void Validate()
             => ValidationUtilities.ValidateObject(this);

@@ -22,6 +22,9 @@ namespace GardensBack.Application.DeviceInventory.Repositories
         {
             device.Validate();
 
+            MicrocontrollerDevice foundMicrocontroller = await _deviceRepository.FindById(device.MicrocontrollerDeviceId, true, ct)
+                ?? throw new NotFoundException("Microcontrolador no encontrado.");
+
             if (device.DeviceType == DeviceType.Actuator && (device.MeasurementType.HasValue || device.MeasurementUnit.HasValue))
                 throw new ValidationException("Dispositivos de tipo actuador no pueden tener tipo o unidad de medición.");
 
@@ -35,6 +38,15 @@ namespace GardensBack.Application.DeviceInventory.Repositories
                 && !Constants.Constants.ValidMeasurements.Contains((device.MeasurementType.Value, device.MeasurementUnit.Value)))
                 throw new ConflictException("El tipo y unidad de medición especificados no son válidos.");
 
+            if (foundMicrocontroller.Devices.Any(x => x.LocalDeviceId == device.LocalDeviceId))
+                throw new ConflictException("Ya existe un dispositivo con el mismo Id local en este microcontrolador.");
+
+            if (foundMicrocontroller.Devices.Any(x => x.DevicePin == device.DevicePin))
+                throw new ConflictException("Ya existe un dispositivo con el mismo pin en este microcontrolador.");
+
+            if (foundMicrocontroller.Devices.Any(x => x.Name == device.Name))
+                throw new ConflictException("Ya existe un dispositivo con el mismo nombre en este microcontrolador."); 
+
             Device deviceToSave = _mapper.Map<Device>(device);
 
             await _deviceRepository.AddDevice(deviceToSave, ct);
@@ -42,28 +54,34 @@ namespace GardensBack.Application.DeviceInventory.Repositories
             return _mapper.Map<DeviceInventoryGeneralDto>(deviceToSave);
         }
 
-        public async Task<DeviceInventoryGeneralDto> ChangeDeviceState(int deviceId, bool state, CancellationToken ct)
+        public async Task<bool> SetDeviceState(int[] deviceIds, bool state, CancellationToken ct)
         {
-            Device foundDevice = await _deviceRepository.GetDeviceById(deviceId, ct) ?? throw new NotFoundException("Dispositivo no encontrado.");
+            IEnumerable<Device> foundDevices = await _deviceRepository.GetDevicesByIds(deviceIds, ct);
 
-            if (foundDevice.Active == state)
-                return _mapper.Map<DeviceInventoryGeneralDto>(foundDevice);
+            if (!foundDevices.Any())
+                return false;
 
-            foundDevice.Active = state;
-            foundDevice.UpdateDate = DateTime.UtcNow;
+            foreach(Device device in foundDevices)
+            {
+                device.Active = state;
+            }
+
             await _deviceRepository.SaveChanges(ct);
-            return _mapper.Map<DeviceInventoryGeneralDto>(foundDevice);
+
+            return true;
         }
 
-        public async Task<IReadOnlyCollection<DeviceInventoryGeneralDto>> GetAllDevicesByMicrocontrollerId(int microCtrlId, int[]? devicesIds, CancellationToken ct)
+        public async Task<IReadOnlyCollection<DeviceInventoryGeneralDto>> GetAllDevicesByMicrocontrollerId(DeviceInventoryFilters request, CancellationToken ct)
         {
-            MicrocontrollerDevice foundMicrocontroller = await _deviceRepository.FindById(microCtrlId, ct) ?? throw new NotFoundException("Microcontrolador no encontrado.");
+            MicrocontrollerDevice foundMicrocontroller = await _deviceRepository.FindById(request.SelectedMicrocontrollerId, false, ct) 
+                ?? throw new NotFoundException("Microcontrolador no encontrado.");
 
-            return _mapper.Map<IReadOnlyCollection<DeviceInventoryGeneralDto>>(await _deviceRepository.GetAllDevicesByMicrocontrollerId(foundMicrocontroller.Id, devicesIds, ct));
+            return _mapper.Map<IReadOnlyCollection<DeviceInventoryGeneralDto>>(await _deviceRepository.GetAllDevicesByMicrocontrollerId(request, ct));
         }
 
         public async Task<DeviceInventoryGeneralDto?> GetDeviceById(int deviceId, CancellationToken ct)
-            => await _deviceRepository.GetDeviceById(deviceId, ct) is Device foundDevice ? _mapper.Map<DeviceInventoryGeneralDto>(foundDevice) : null;
+            => await _deviceRepository.GetDeviceById(deviceId, ct) is Device foundDevice ? _mapper.Map<DeviceInventoryGeneralDto>(foundDevice) 
+                : throw new NotFoundException("Dispositivo no encontrado.");
 
         public async Task ProcessInventory(DeviceInventoryMessage inventory, CancellationToken ct)
         {
@@ -138,18 +156,22 @@ namespace GardensBack.Application.DeviceInventory.Repositories
 
             string? customName = string.IsNullOrWhiteSpace(device.CustomName) ? null : device.CustomName.Trim();
 
+            device.CustomName = customName;
             bool changed = CheckIfDeviceIsChangedFromManualUpdate(foundDevice, device);
 
             if (!changed)
                 return _mapper.Map<DeviceInventoryGeneralDto>(foundDevice);
 
-            device.CustomName = customName;
             SetDeviceUpdateProperties(foundDevice, device);
 
             await _deviceRepository.SaveChanges(ct);
 
             return _mapper.Map<DeviceInventoryGeneralDto>(foundDevice);
         }
+
+        public async Task<DeviceInventoryGeneralDto?> GetDeviceByLocalId(GetDeviceByLocalIdDto request, CancellationToken ct)
+            => await  _deviceRepository.GetDeviceByLocalId(request, ct) is Device foundDevice ? 
+                _mapper.Map<DeviceInventoryGeneralDto>(foundDevice) : throw new NotFoundException("Dispositivo no encontrado.");
 
         private static bool UpdateMicrocontrollerDevices(MicrocontrollerDevice microcontroller, IEnumerable<DeviceInventoryItemMessage> devices)
         {
@@ -192,6 +214,7 @@ namespace GardensBack.Application.DeviceInventory.Repositories
                         microcontroller.Devices.Add(new Device
                         {
                             LocalDeviceId = device.LocalDeviceId,
+                            CustomName = device.Name,
                             Name = device.Name,
                             DevicePin = device.Esp32Pin,
                             ConnectionType = device.ConnectionType,
