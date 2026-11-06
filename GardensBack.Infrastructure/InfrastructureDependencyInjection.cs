@@ -41,6 +41,7 @@ namespace GardensBack.Domain
             services.AddHostedService<MqttFirmwareUpdateStatusConsumer>();
             services.AddHostedService<MqttInventoryConsumer>();
             services.AddHostedService<MqttTelemetryConsumer>();
+            services.AddHostedService<MqttDeviceActionResponseConsumer>();
 
             return services;
         }

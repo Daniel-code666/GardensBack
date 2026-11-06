@@ -10,5 +10,6 @@ namespace GardensBack.Application.DeviceProvisioning.Configuration
         public required string InventoryConsumerClientId { get; set; }
         public required string FirmwareStatusConsumerClientId { get; set; }
         public required string TelemetryConsumerClientId { get; set; }
+        public required string ActionResponseConsumerClientId { get; set; }
     }
 }

@@ -85,6 +85,19 @@ namespace GardensBack.Infrastructure.Persistance.Repositories
                 .Where(x => x.MicroCtrlDeviceId == microcontrollerId)
                 .MaxAsync(x => (uint?)x.CommandVersion, ct) ?? 0;
 
+        public Task<int> MarkCommandPublished(int commandId, DateTime publishedAt, CancellationToken ct)
+            => _db.DeviceCommands
+                .Where(x => x.Id == commandId && x.Status == CommandStatus.Pending)
+                .ExecuteUpdateAsync(setters => setters
+                    .SetProperty(x => x.Status, CommandStatus.Published)
+                    .SetProperty(x => x.PublishedAt, publishedAt)
+                    .SetProperty(x => x.ErrorCode, (string?)null)
+                    .SetProperty(x => x.ErrorMessage, (string?)null)
+                    .SetProperty(x => x.UpdateDate, publishedAt), ct);
+
+        public Task ReloadCommand(DeviceCommand command, CancellationToken ct)
+            => _db.Entry(command).ReloadAsync(ct);
+
         public Task<int> ExpireCommands(DateTime utcNow, CancellationToken ct)
             => _db.DeviceCommands
                 .Where(x =>

@@ -6,6 +6,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 namespace GardensBack.Domain.Entities
 {
     [Index(nameof(DeviceId), nameof(CreationDate))]
+    [Index(nameof(DeviceId), nameof(RequestId), IsUnique = true)]
     [Table("DeviceTelemetry", Schema = "Data")]
     public class DeviceTelemetry : BaseEntity
     {

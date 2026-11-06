@@ -430,6 +430,9 @@ namespace GardensBack.Infrastructure.Persistance.Migrations
 
                     b.HasIndex("DeviceId", "CreationDate");
 
+                    b.HasIndex("DeviceId", "RequestId")
+                        .IsUnique();
+
                     b.ToTable("DeviceTelemetry", "Data");
                 });
 

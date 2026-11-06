@@ -2,6 +2,8 @@
 using GardensBack.Application.DeviceInventory.Dtos;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
 
 namespace GardensBack.Controllers
 {
@@ -75,5 +77,49 @@ namespace GardensBack.Controllers
         [HttpPut("UpdateDevice")]
         public async Task<ActionResult<DeviceInventoryGeneralDto>> UpdateDevice([FromBody] DeviceInventoryGeneralDto device, CancellationToken ct)
             => Ok(await _service.UpdateDevice(device, ct));
+
+        /// <summary>
+        /// Publica un comando para uno o varios dispositivos pertenecientes al mismo microcontrolador.
+        /// </summary>
+        [HttpPost("Commands")]
+        public async Task<ActionResult<DeviceCommandResponseDto>> ExecuteCommand([FromBody] DeviceCommandRequestDto request, CancellationToken ct)
+        {
+            if (!TryGetAuthenticatedUserId(out int userId))
+                return Unauthorized();
+
+            DeviceCommandResponseDto response = await _service.CreateDeviceCommand(request, userId, ct);
+
+            return AcceptedAtAction(
+                nameof(GetDeviceCommandById),
+                new { commandId = response.Id },
+                response);
+        }
+
+        /// <summary>
+        /// Consulta el estado de un comando por su identificador interno.
+        /// </summary>
+        [HttpGet("Commands/{commandId:int}")]
+        public async Task<ActionResult<DeviceCommandResponseDto>> GetDeviceCommandById([FromRoute] int commandId, CancellationToken ct)
+        {
+            if (!TryGetAuthenticatedUserId(out int userId))
+                return Unauthorized();
+
+            return Ok(await _service.GetDeviceCommandById(commandId, userId, ct));
+        }
+
+        /// <summary>
+        /// Consulta el estado de un comando por el identificador MQTT del microcontrolador y el requestId.
+        /// </summary>
+        [HttpGet("Commands/by-request/{deviceId}/{requestId}")]
+        public async Task<ActionResult<DeviceCommandResponseDto>> GetDeviceCommandByRequest([FromRoute] string deviceId, [FromRoute] string requestId, CancellationToken ct)
+        {
+            if (!TryGetAuthenticatedUserId(out int userId))
+                return Unauthorized();
+
+            return Ok(await _service.GetDeviceCommandByRequest(deviceId, requestId, userId, ct));
+        }
+
+        private bool TryGetAuthenticatedUserId(out int userId)
+            => int.TryParse(User.FindFirstValue(JwtRegisteredClaimNames.Sub), out userId);
     }
 }

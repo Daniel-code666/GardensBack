@@ -20,6 +20,8 @@ namespace GardensBack.Application.Abstractions
         Task<DeviceCommand?> GetCommandById(int commandId, CancellationToken ct);
         Task<DeviceCommand?> GetCommandByRequest(string deviceId, string requestId, CancellationToken ct);
         Task<uint> GetLastCommandVersion(int microcontrollerId, CancellationToken ct);
+        Task<int> MarkCommandPublished(int commandId, DateTime publishedAt, CancellationToken ct);
+        Task ReloadCommand(DeviceCommand command, CancellationToken ct);
         Task<int> ExpireCommands(DateTime utcNow, CancellationToken ct);
         Task<int> SaveChanges(CancellationToken ct);
     }

@@ -215,9 +215,11 @@ namespace GardensBack.Application.DeviceInventory.Repositories
             return _mapper.Map<IEnumerable<DeviceTelemetryDto>>(foundDevices);
         }
 
-        public async Task<DeviceCommandResponseDto> CreateDeviceCommand(DeviceCommandRequestDto request, CancellationToken ct)
+        public async Task<DeviceCommandResponseDto> CreateDeviceCommand(DeviceCommandRequestDto request, int requestedByUserId, CancellationToken ct)
         {
             request.Validate();
+
+            ValidateRequestedByUserId(requestedByUserId);
 
             int[] requestedDeviceIds = [.. request.DeviceIds.Distinct()];
             List<Device> devices = [.. await _deviceRepository.GetDevicesByIds(requestedDeviceIds, ct)];
@@ -236,6 +238,7 @@ namespace GardensBack.Application.DeviceInventory.Repositories
 
             MicrocontrollerDevice microcontroller = devices[0].MicroCtrlDevice;
             ValidateMicrocontrollerForCommand(microcontroller);
+            ValidateDeviceOwnership(microcontroller, requestedByUserId);
 
             if (request.Command != DeviceCommandType.GetSensorOrActuatorDataById &&
                 devices.Any(device => device.DeviceType != DeviceType.Actuator))
@@ -293,20 +296,26 @@ namespace GardensBack.Application.DeviceInventory.Repositories
             }
         }
 
-        public async Task<DeviceCommandResponseDto> GetDeviceCommandById(int commandId, CancellationToken ct)
+        public async Task<DeviceCommandResponseDto> GetDeviceCommandById(int commandId, int requestedByUserId, CancellationToken ct)
         {
+            ValidateRequestedByUserId(requestedByUserId);
+
             if (commandId <= 0)
                 throw new ValidationException("El identificador del comando no es válido.");
 
             DeviceCommand command = await _deviceRepository.GetCommandById(commandId, ct)
                 ?? throw new NotFoundException("El comando no fue encontrado.");
 
+            ValidateDeviceOwnership(command.MicroCtrlDevice, requestedByUserId);
+
             await ExpireIfNecessary(command, ct);
             return _mapper.Map<DeviceCommandResponseDto>(command);
         }
 
-        public async Task<DeviceCommandResponseDto> GetDeviceCommandByRequest(string deviceId, string requestId, CancellationToken ct)
+        public async Task<DeviceCommandResponseDto> GetDeviceCommandByRequest(string deviceId, string requestId, int requestedByUserId, CancellationToken ct)
         {
+            ValidateRequestedByUserId(requestedByUserId);
+
             if (!DeviceMqttTopics.IsValidDeviceId(deviceId))
                 throw new ValidationException("El identificador del microcontrolador no es válido.");
 
@@ -315,6 +324,8 @@ namespace GardensBack.Application.DeviceInventory.Repositories
 
             DeviceCommand command = await _deviceRepository.GetCommandByRequest(deviceId, requestId, ct)
                 ?? throw new NotFoundException("El comando no fue encontrado.");
+
+            ValidateDeviceOwnership(command.MicroCtrlDevice, requestedByUserId);
 
             await ExpireIfNecessary(command, ct);
             return _mapper.Map<DeviceCommandResponseDto>(command);
@@ -335,16 +346,24 @@ namespace GardensBack.Application.DeviceInventory.Repositories
             if (command.ExpiresAt <= now)
             {
                 SetExpired(command, now);
+                await _deviceRepository.SaveChanges(ct);
             }
             else
             {
-                command.Status = CommandStatus.Published;
-                command.PublishedAt = now;
-                command.ErrorCode = null;
-                command.ErrorMessage = null;
+                int updated = await _deviceRepository.MarkCommandPublished(command.Id, now, ct);
+                if (updated == 1)
+                {
+                    command.Status = CommandStatus.Published;
+                    command.PublishedAt = now;
+                    command.ErrorCode = null;
+                    command.ErrorMessage = null;
+                }
+                else
+                {
+                    await _deviceRepository.ReloadCommand(command, ct);
+                }
             }
 
-            await _deviceRepository.SaveChanges(ct);
             return _mapper.Map<DeviceCommandResponseDto>(command);
         }
 
@@ -527,6 +546,18 @@ namespace GardensBack.Application.DeviceInventory.Repositories
                 throw new ValidationException("El microcontrolador no tiene un identificador MQTT válido.");
         }
 
+        private static void ValidateRequestedByUserId(int requestedByUserId)
+        {
+            if (requestedByUserId <= 0)
+                throw new UnathorizedException("La identidad del usuario no es válida.");
+        }
+
+        private static void ValidateDeviceOwnership(MicrocontrollerDevice microcontroller, int requestedByUserId)
+        {
+            if (microcontroller.UserId != requestedByUserId)
+                throw new UnathorizedException("El microcontrolador no pertenece al usuario autenticado.");
+        }
+
         private static IReadOnlyCollection<DeviceActionParameter> BuildCommandParameters(
             IEnumerable<Device> devices,
             DeviceCommandRequestDto request)
@@ -684,9 +715,17 @@ namespace GardensBack.Application.DeviceInventory.Repositories
             try
             {
                 await _publisher.PublishCommand(command.MicroCtrlDevice.DeviceId!, message, ct);
-                command.Status = CommandStatus.Published;
-                command.PublishedAt = DateTime.UtcNow;
-                await _deviceRepository.SaveChanges(ct);
+                DateTime publishedAt = DateTime.UtcNow;
+                int updated = await _deviceRepository.MarkCommandPublished(command.Id, publishedAt, ct);
+                if (updated == 1)
+                {
+                    command.Status = CommandStatus.Published;
+                    command.PublishedAt = publishedAt;
+                }
+                else
+                {
+                    await _deviceRepository.ReloadCommand(command, ct);
+                }
             }
             catch(OperationCanceledException) when (ct.IsCancellationRequested)
             {
