@@ -6,6 +6,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 namespace GardensBack.Domain.Entities
 {
     [Index(nameof(MicroCtrlDeviceId), nameof(RequestId), IsUnique = true)]
+    [Index(nameof(MicroCtrlDeviceId), nameof(CommandVersion), IsUnique = true)]
     [Index(nameof(Status), nameof(ExpiresAt))]
     [Table("DeviceCommand", Schema = "Data")]
     public class DeviceCommand : BaseEntity
@@ -15,6 +16,7 @@ namespace GardensBack.Domain.Entities
         public int Id { get; set; }
         public required string Command { get; set; }
         public required string RequestId { get; set; }
+        public uint CommandVersion { get; set; }
         public string? Payload { get; set; }
         public CommandStatus Status { get; set; }
         public bool? Success { get; set; }

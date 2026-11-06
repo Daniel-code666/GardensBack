@@ -20,7 +20,6 @@
   <ItemGroup>
     <Folder Include="DeviceProvisioning\Constants\" />
     <Folder Include="DeviceProvisioning\Validation\" />
-    <Folder Include="FirmwareUpdates\Abstractions\" />
     <Folder Include="FirmwareUpdates\Repositories\" />
   </ItemGroup>
 

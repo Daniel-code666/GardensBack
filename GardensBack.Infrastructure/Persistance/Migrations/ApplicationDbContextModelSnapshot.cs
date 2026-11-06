@@ -194,6 +194,9 @@ namespace GardensBack.Infrastructure.Persistance.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<long>("CommandVersion")
+                        .HasColumnType("bigint");
+
                     b.Property<DateTime?>("CompletedAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -235,6 +238,9 @@ namespace GardensBack.Infrastructure.Persistance.Migrations
                         .HasColumnType("timestamp with time zone");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("MicroCtrlDeviceId", "CommandVersion")
+                        .IsUnique();
 
                     b.HasIndex("MicroCtrlDeviceId", "RequestId")
                         .IsUnique();

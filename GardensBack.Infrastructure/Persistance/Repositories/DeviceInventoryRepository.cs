@@ -1,6 +1,7 @@
 ﻿using GardensBack.Application.Abstractions;
 using GardensBack.Application.DeviceInventory.Dtos;
 using GardensBack.Domain.Entities;
+using GardensBack.Domain.Enums;
 using Microsoft.EntityFrameworkCore;
 
 namespace GardensBack.Infrastructure.Persistance.Repositories
@@ -33,7 +34,11 @@ namespace GardensBack.Infrastructure.Persistance.Repositories
             => await _db.Devices.Include(x => x.MicroCtrlDevice).SingleOrDefaultAsync(x => x.Id == deviceId, ct);
 
         public async Task<IEnumerable<Device>> GetDevicesByIds(int[] deviceIds, CancellationToken ct)
-            =>  await _db.Devices.Where(x => deviceIds.Contains(x.Id)).ToListAsync(ct);
+            => await _db.Devices
+                .Include(x => x.MicroCtrlDevice)
+                .ThenInclude(x => x.MqttCredential)
+                .Where(x => deviceIds.Contains(x.Id))
+                .ToListAsync(ct);
 
         public async Task<MicrocontrollerDevice?> FindById(int microCtrlId, bool includeDevices, CancellationToken ct)
         {
@@ -58,6 +63,41 @@ namespace GardensBack.Infrastructure.Persistance.Repositories
 
         public async Task<IEnumerable<DeviceTelemetry>> GetTelemetryForDevices(int[] devicesIds, int itemPerRequest, CancellationToken ct)
             => await _db.DeviceTelemetries.AsNoTracking().Where(x => devicesIds.Contains(x.DeviceId)).OrderByDescending(x => x.CreationDate).Take(itemPerRequest).ToListAsync(ct);
+
+        public Task AddCommand(DeviceCommand command, CancellationToken ct)
+            => _db.DeviceCommands.AddAsync(command, ct).AsTask();
+
+        public Task<DeviceCommand?> GetCommandById(int commandId, CancellationToken ct)
+            => _db.DeviceCommands
+                .Include(x => x.MicroCtrlDevice)
+                .SingleOrDefaultAsync(x => x.Id == commandId, ct);
+
+        public Task<DeviceCommand?> GetCommandByRequest(string deviceId, string requestId, CancellationToken ct)
+            => _db.DeviceCommands
+                .Include(x => x.MicroCtrlDevice)
+                .SingleOrDefaultAsync(x =>
+                    x.RequestId == requestId &&
+                    x.MicroCtrlDevice.DeviceId == deviceId,
+                    ct);
+
+        public async Task<uint> GetLastCommandVersion(int microcontrollerId, CancellationToken ct)
+            => await _db.DeviceCommands
+                .Where(x => x.MicroCtrlDeviceId == microcontrollerId)
+                .MaxAsync(x => (uint?)x.CommandVersion, ct) ?? 0;
+
+        public Task<int> ExpireCommands(DateTime utcNow, CancellationToken ct)
+            => _db.DeviceCommands
+                .Where(x =>
+                    x.Active &&
+                    x.ExpiresAt <= utcNow &&
+                    (x.Status == CommandStatus.Pending || x.Status == CommandStatus.Published))
+                .ExecuteUpdateAsync(setters => setters
+                    .SetProperty(x => x.Status, CommandStatus.Expired)
+                    .SetProperty(x => x.Success, false)
+                    .SetProperty(x => x.ErrorCode, "command_expired")
+                    .SetProperty(x => x.ErrorMessage, "El dispositivo no respondió antes de la fecha de expiración.")
+                    .SetProperty(x => x.CompletedAt, utcNow)
+                    .SetProperty(x => x.UpdateDate, utcNow), ct);
 
         public async Task<int> SaveChanges(CancellationToken ct)
             => await _db.SaveChangesAsync(ct);

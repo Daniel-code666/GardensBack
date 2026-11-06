@@ -16,6 +16,11 @@ namespace GardensBack.Application.Abstractions
         Task AddTelemetry(DeviceTelemetry telemetry, CancellationToken ct);
         Task<IEnumerable<Device>> GetDevicesWithTelemetry(int[] devicesIds, int itemPerRequest, CancellationToken ct);
         Task<IEnumerable<DeviceTelemetry>> GetTelemetryForDevices(int[] devicesIds, int itemPerRequest, CancellationToken ct);
+        Task AddCommand(DeviceCommand command, CancellationToken ct);
+        Task<DeviceCommand?> GetCommandById(int commandId, CancellationToken ct);
+        Task<DeviceCommand?> GetCommandByRequest(string deviceId, string requestId, CancellationToken ct);
+        Task<uint> GetLastCommandVersion(int microcontrollerId, CancellationToken ct);
+        Task<int> ExpireCommands(DateTime utcNow, CancellationToken ct);
         Task<int> SaveChanges(CancellationToken ct);
     }
 }

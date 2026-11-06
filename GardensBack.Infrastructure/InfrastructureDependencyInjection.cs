@@ -1,7 +1,11 @@
 ﻿using GardensBack.Application.Abstractions;
+using GardensBack.Application.Common.Security;
 using GardensBack.Application.DeviceConnectivity.Abstractions;
+using GardensBack.Application.DeviceInventory.Abstractions;
+using GardensBack.Application.DeviceInventory.Dtos;
 using GardensBack.Application.DeviceProvisioning.Abstractions;
 using GardensBack.Application.FirmwareUpdates.Abstractions;
+using GardensBack.Application.FirmwareUpdates.Dtos;
 using GardensBack.Infrastructure.Firmware;
 using GardensBack.Infrastructure.Messaging;
 using GardensBack.Infrastructure.Persistance;
@@ -30,8 +34,10 @@ namespace GardensBack.Domain
             services.AddScoped<IFirmwareReleasePublicationValidator, FirmwareReleasePublicationValidator>();
             services.AddScoped<IDeviceFirmwareUpdateRepository, DeviceFirmwareUpdateRepository>();
             services.AddSingleton<IDeviceCommandKeyProtector, DeviceCommandKeyProtector>();
-            services.AddSingleton<IOtaCommandAuthenticationService, OtaCommandAuthenticationService>();
+            services.AddSingleton<ICommandAuthenticationService<OtaUpdateCommand>, OtaCommandAuthenticationService>();
+            services.AddSingleton<ICommandAuthenticationService<DeviceActionMessage>, DeviceActionAuthenticationService>();
             services.AddScoped<IDeviceControlPublisher, MqttDeviceControlPublisher>();
+            services.AddScoped<IDeviceActionPublisher, MqttDeviceActionPublisher>();
             services.AddHostedService<MqttFirmwareUpdateStatusConsumer>();
             services.AddHostedService<MqttInventoryConsumer>();
             services.AddHostedService<MqttTelemetryConsumer>();

@@ -1,6 +1,7 @@
 using AutoMapper;
 using GardensBack.Application.Abstractions;
 using GardensBack.Application.Common.Exceptions;
+using GardensBack.Application.Common.Security;
 using GardensBack.Application.DeviceConnectivity.Abstractions;
 using GardensBack.Application.FirmwareReleases.Constants;
 using GardensBack.Application.FirmwareReleases.Repositories;
@@ -22,7 +23,7 @@ namespace GardensBack.Application.FirmwareUpdates.Services
         IFirmwareReleaseRepository firmwareReleaseRepository,
         IDeviceConnectivityConfigurationRepository connectivityRepository,
         IDeviceCommandKeyProtector commandKeyProtector,
-        IOtaCommandAuthenticationService authenticationService,
+        ICommandAuthenticationService<OtaUpdateCommand> authenticationService,
         IDeviceControlPublisher controlPublisher,
         IMapper mapper,
         IFirmwareReleasePublicationValidator validator,
@@ -33,7 +34,7 @@ namespace GardensBack.Application.FirmwareUpdates.Services
         private readonly IFirmwareReleaseRepository _firmwareReleaseRepository = firmwareReleaseRepository;
         private readonly IDeviceConnectivityConfigurationRepository _connectivityRepository = connectivityRepository;
         private readonly IDeviceCommandKeyProtector _commandKeyProtector = commandKeyProtector;
-        private readonly IOtaCommandAuthenticationService _authenticationService = authenticationService;
+        private readonly ICommandAuthenticationService<OtaUpdateCommand> _authenticationService = authenticationService;
         private readonly IDeviceControlPublisher _controlPublisher = controlPublisher;
         private readonly IMapper _mapper = mapper;
         private readonly IFirmwareReleasePublicationValidator _validator = validator;

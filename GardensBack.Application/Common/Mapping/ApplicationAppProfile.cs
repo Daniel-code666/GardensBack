@@ -195,6 +195,17 @@ namespace GardensBack.Application.Common.Mapping
                     destination => destination.Telemetry,
                     options => options.MapFrom(source =>
                         source.DeviceTelemetries));
+
+            CreateMap<DeviceCommand, DeviceCommandResponseDto>()
+                .ForMember(
+                    destination => destination.DeviceId,
+                    options => options.MapFrom(source => source.MicroCtrlDevice.DeviceId!))
+                .ForMember(
+                    destination => destination.Command,
+                    options => options.MapFrom(source => Enum.Parse<DeviceCommandType>(source.Command)))
+                .ForMember(
+                    destination => destination.CreatedAt,
+                    options => options.MapFrom(source => source.CreationDate));
         }
     }
 }
