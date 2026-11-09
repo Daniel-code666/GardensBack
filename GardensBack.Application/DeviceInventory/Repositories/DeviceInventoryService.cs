@@ -616,9 +616,10 @@ namespace GardensBack.Application.DeviceInventory.Repositories
         private static void SetExpired(DeviceCommand command, DateTime utcNow)
         {
             command.Status = CommandStatus.Expired;
-            command.Success = false;
-            command.ErrorCode = "command_expired";
-            command.ErrorMessage = "El dispositivo no respondió antes de la fecha de expiración.";
+            // No recibir la respuesta no demuestra que el dispositivo no ejecutó el comando.
+            command.Success = null;
+            command.ErrorCode = "command_response_timeout";
+            command.ErrorMessage = "No se recibió confirmación del dispositivo antes de la fecha de expiración.";
             command.CompletedAt = utcNow;
         }
 

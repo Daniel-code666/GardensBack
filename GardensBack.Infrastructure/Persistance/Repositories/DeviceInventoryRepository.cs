@@ -108,9 +108,9 @@ namespace GardensBack.Infrastructure.Persistance.Repositories
                     (x.Status == CommandStatus.Pending || x.Status == CommandStatus.Published))
                 .ExecuteUpdateAsync(setters => setters
                     .SetProperty(x => x.Status, CommandStatus.Expired)
-                    .SetProperty(x => x.Success, false)
-                    .SetProperty(x => x.ErrorCode, "command_expired")
-                    .SetProperty(x => x.ErrorMessage, "El dispositivo no respondió antes de la fecha de expiración.")
+                    .SetProperty(x => x.Success, (bool?)null)
+                    .SetProperty(x => x.ErrorCode, "command_response_timeout")
+                    .SetProperty(x => x.ErrorMessage, "No se recibió confirmación del dispositivo antes de la fecha de expiración.")
                     .SetProperty(x => x.CompletedAt, utcNow)
                     .SetProperty(x => x.UpdateDate, utcNow), ct);
 

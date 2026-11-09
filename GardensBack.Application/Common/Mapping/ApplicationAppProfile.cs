@@ -12,11 +12,15 @@ using GardensBack.Application.Roles.Dtos;
 using GardensBack.Application.Users.Dtos;
 using GardensBack.Domain.Entities;
 using GardensBack.Domain.Enums;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace GardensBack.Application.Common.Mapping
 {
     public class ApplicationAppProfile : Profile
     {
+        private static readonly JsonSerializerOptions CommandResponseJsonOptions = CreateCommandResponseJsonOptions();
+
         public ApplicationAppProfile()
         {
             CreateMap<UserRegisterRequest, User>()
@@ -218,7 +222,30 @@ namespace GardensBack.Application.Common.Mapping
                     options => options.MapFrom(source => Enum.Parse<DeviceCommandType>(source.Command)))
                 .ForMember(
                     destination => destination.CreatedAt,
-                    options => options.MapFrom(source => source.CreationDate));
+                    options => options.MapFrom(source => source.CreationDate))
+                .ForMember(
+                    destination => destination.DeviceResponse,
+                    options => options.MapFrom(source => DeserializeDeviceResponse(source.ResponsePayload)));
+        }
+
+        private static DeviceActionResultMessage? DeserializeDeviceResponse(string? responsePayload)
+        {
+            if (string.IsNullOrWhiteSpace(responsePayload))
+                return null;
+
+            return JsonSerializer.Deserialize<DeviceActionResultMessage>(
+                responsePayload,
+                CommandResponseJsonOptions);
+        }
+
+        private static JsonSerializerOptions CreateCommandResponseJsonOptions()
+        {
+            JsonSerializerOptions options = new(JsonSerializerDefaults.Web)
+            {
+                PropertyNameCaseInsensitive = true
+            };
+            options.Converters.Add(new JsonStringEnumConverter());
+            return options;
         }
     }
 }

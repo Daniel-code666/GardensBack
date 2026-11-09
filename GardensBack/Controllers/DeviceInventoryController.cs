@@ -53,7 +53,7 @@ namespace GardensBack.Controllers
         /// <param name="request"></param>
         /// <param name="ct"></param>
         /// <returns></returns>
-        [HttpGet("GetDevices")]
+        [HttpPost("GetDevices")]
         public async Task<ActionResult<IReadOnlyCollection<DeviceInventoryGeneralDto>>> GetAllDevicesByMicrocontrollerId([FromBody] DeviceInventoryFilters request,
             CancellationToken ct)
         {
@@ -69,7 +69,7 @@ namespace GardensBack.Controllers
         /// <param name="request"></param>
         /// <param name="ct"></param>
         /// <returns></returns>
-        [HttpGet("GetDevicesWithTelemetry")]
+        [HttpPost("GetDevicesWithTelemetry")]
         public async Task<ActionResult<IEnumerable<DeviceTelemetryDto>>> GetTelemetryForDevices([FromBody] GetTelemetryForDevicesDto request, CancellationToken ct)
         {
             if (!TryGetAuthenticatedUserId(out int userId))

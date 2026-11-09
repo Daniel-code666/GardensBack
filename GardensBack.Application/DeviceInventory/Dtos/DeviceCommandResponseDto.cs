@@ -12,6 +12,7 @@ namespace GardensBack.Application.DeviceInventory.Dtos
         public DeviceCommandType Command { get; set; }
         public CommandStatus Status { get; set; }
         public bool? Success { get; set; }
+        public DeviceActionResultMessage? DeviceResponse { get; set; }
         public string? ErrorCode { get; set; }
         public string? ErrorMessage { get; set; }
         public DateTime CreatedAt { get; set; }
