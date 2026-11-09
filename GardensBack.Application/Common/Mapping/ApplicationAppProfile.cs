@@ -159,10 +159,23 @@ namespace GardensBack.Application.Common.Mapping
                 .ForMember(x => x.TargetVersion, o => o.MapFrom(x => x.FirmwareRelease.Version));
 
             CreateMap<Device, DeviceInventoryGeneralDto>()
-                .ReverseMap();
+                .ForMember(
+                    destination => destination.MicrocontrollerDeviceId,
+                    options => options.MapFrom(source => source.MicroCtrlDeviceId))
+                .ForMember(
+                    destination => destination.Telemetry,
+                    options => options.MapFrom(source =>
+                        source.DeviceTelemetries.OrderByDescending(telemetry => telemetry.CreationDate)))
+                .ReverseMap()
+                .ForMember(
+                    destination => destination.MicroCtrlDeviceId,
+                    options => options.MapFrom(source => source.MicrocontrollerDeviceId))
+                .ForMember(destination => destination.MicroCtrlDevice, options => options.Ignore())
+                .ForMember(destination => destination.DeviceTelemetries, options => options.Ignore());
 
             CreateMap<DeviceInventoryItemMessage, DeviceInventoryGeneralDto>()
                 .ForMember(x => x.CustomName, o => o.Ignore())
+                .ForMember(x => x.Telemetry, o => o.Ignore())
                 .ReverseMap();
 
             CreateMap<SensorReadingMessage, DeviceTelemetry>()

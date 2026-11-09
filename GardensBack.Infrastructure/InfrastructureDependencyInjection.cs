@@ -6,6 +6,7 @@ using GardensBack.Application.DeviceInventory.Dtos;
 using GardensBack.Application.DeviceProvisioning.Abstractions;
 using GardensBack.Application.FirmwareUpdates.Abstractions;
 using GardensBack.Application.FirmwareUpdates.Dtos;
+using GardensBack.Infrastructure.BackgroundServices;
 using GardensBack.Infrastructure.Firmware;
 using GardensBack.Infrastructure.Messaging;
 using GardensBack.Infrastructure.Persistance;
@@ -42,6 +43,8 @@ namespace GardensBack.Domain
             services.AddHostedService<MqttInventoryConsumer>();
             services.AddHostedService<MqttTelemetryConsumer>();
             services.AddHostedService<MqttDeviceActionResponseConsumer>();
+            services.AddSingleton(TimeProvider.System);
+            services.AddHostedService<DeviceCommandExpirationWorker>();
 
             return services;
         }

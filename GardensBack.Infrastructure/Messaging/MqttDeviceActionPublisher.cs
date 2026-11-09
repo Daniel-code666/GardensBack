@@ -38,7 +38,7 @@ namespace GardensBack.Infrastructure.Messaging
             MqttApplicationMessage message = new MqttApplicationMessageBuilder()
                 .WithTopic(topic)
                 .WithPayload(payload)
-                .WithQualityOfServiceLevel(MqttQualityOfServiceLevel.AtLeastOnce)
+                .WithQualityOfServiceLevel(MqttQualityOfServiceLevel.AtMostOnce)
                 .WithRetainFlag(false)
                 .Build();
 

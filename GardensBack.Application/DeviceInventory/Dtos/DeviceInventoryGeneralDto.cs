@@ -21,6 +21,7 @@ namespace GardensBack.Application.DeviceInventory.Dtos
         public int? I2cSdaPin { get; set; }
         public int? I2cSclPin { get; set; }
         public int? I2cAddress { get; set; }
+        public IReadOnlyCollection<DeviceTelemetryReadingDto> Telemetry { get; set; } = [];
 
         public void Validate()
             => ValidationUtilities.ValidateObject(this);

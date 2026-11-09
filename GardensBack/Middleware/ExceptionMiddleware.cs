@@ -35,6 +35,7 @@ namespace GardensBack.Middleware
                 {
                     ValidationException => (400, "Invalid data"),
                     UnathorizedException => (401, "Unathorized"),
+                    ForbiddenException => (403, "Forbidden"),
                     NotFoundException => (404, "Not found"),
                     ConflictException => (409, "Conflict"),
                     _ => (500, "Server error")

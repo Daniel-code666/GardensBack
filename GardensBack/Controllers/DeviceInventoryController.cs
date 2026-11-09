@@ -25,7 +25,12 @@ namespace GardensBack.Controllers
         /// <returns></returns>
         [HttpPost("CreateDevice")]
         public async Task<ActionResult<DeviceInventoryGeneralDto>> CreateDevice([FromBody] DeviceInventoryGeneralDto device, CancellationToken ct)
-            => Ok(await _service.AddDevice(device, ct));
+        {
+            if (!TryGetAuthenticatedUserId(out int userId))
+                return Unauthorized();
+
+            return Ok(await _service.AddDevice(device, userId, ct));
+        }
 
         /// <summary>
         /// Obtiene un dispoistivo por su id
@@ -35,7 +40,12 @@ namespace GardensBack.Controllers
         /// <returns></returns>
         [HttpGet("GetDeviceById/{deviceId}")]
         public async Task<ActionResult<DeviceInventoryGeneralDto>> GetDeviceById([FromRoute] int deviceId, CancellationToken ct)
-            => Ok(await _service.GetDeviceById(deviceId, ct));
+        {
+            if (!TryGetAuthenticatedUserId(out int userId))
+                return Unauthorized();
+
+            return Ok(await _service.GetDeviceById(deviceId, userId, ct));
+        }
 
         /// <summary>
         /// Devuelve los dispositivos asociados al microcontrolador especificado. Se puede filtrar por un conjunto de ids de dispositivos.
@@ -46,7 +56,12 @@ namespace GardensBack.Controllers
         [HttpGet("GetDevices")]
         public async Task<ActionResult<IReadOnlyCollection<DeviceInventoryGeneralDto>>> GetAllDevicesByMicrocontrollerId([FromBody] DeviceInventoryFilters request,
             CancellationToken ct)
-            => Ok(await _service.GetAllDevicesByMicrocontrollerId(request, ct));
+        {
+            if (!TryGetAuthenticatedUserId(out int userId))
+                return Unauthorized();
+
+            return Ok(await _service.GetAllDevicesByMicrocontrollerId(request, userId, ct));
+        }
 
         /// <summary>
         /// Devuelve una lista con los dispositivos y su telemetría según su id. Se puede limitar el número de resultados devueltos
@@ -56,7 +71,12 @@ namespace GardensBack.Controllers
         /// <returns></returns>
         [HttpGet("GetDevicesWithTelemetry")]
         public async Task<ActionResult<IEnumerable<DeviceTelemetryDto>>> GetTelemetryForDevices([FromBody] GetTelemetryForDevicesDto request, CancellationToken ct)
-            => Ok(await _service.GetTelemetryForDevices(request, ct));
+        {
+            if (!TryGetAuthenticatedUserId(out int userId))
+                return Unauthorized();
+
+            return Ok(await _service.GetTelemetryForDevices(request, userId, ct));
+        }
 
         /// <summary>
         /// Cambia el estado de un dispositivo
@@ -66,7 +86,12 @@ namespace GardensBack.Controllers
         /// <returns></returns>
         [HttpPut("SetDeviceState")]
         public async Task<ActionResult<DeviceInventoryGeneralDto>> SetDeviceState(SetDevicesStateDto request, CancellationToken ct)
-            => Ok(await _service.SetDeviceState(request.DevicesIds, request.State, ct));
+        {
+            if (!TryGetAuthenticatedUserId(out int userId))
+                return Unauthorized();
+
+            return Ok(await _service.SetDeviceState(request.DevicesIds, request.State, userId, ct));
+        }
 
         /// <summary>
         /// Actualiza los datos editables de un sensor o actuador.
@@ -76,22 +101,39 @@ namespace GardensBack.Controllers
         /// <returns></returns>
         [HttpPut("UpdateDevice")]
         public async Task<ActionResult<DeviceInventoryGeneralDto>> UpdateDevice([FromBody] DeviceInventoryGeneralDto device, CancellationToken ct)
-            => Ok(await _service.UpdateDevice(device, ct));
+        {
+            if (!TryGetAuthenticatedUserId(out int userId))
+                return Unauthorized();
+
+            return Ok(await _service.UpdateDevice(device, userId, ct));
+        }
 
         /// <summary>
         /// Publica un comando para uno o varios dispositivos pertenecientes al mismo microcontrolador.
         /// </summary>
         [HttpPost("Commands")]
-        public async Task<ActionResult<DeviceCommandResponseDto>> ExecuteCommand([FromBody] DeviceCommandRequestDto request, CancellationToken ct)
+        [ProducesResponseType(typeof(DeviceCommandExecutionResponseDto), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(DeviceCommandExecutionResponseDto), StatusCodes.Status202Accepted)]
+        public async Task<ActionResult<DeviceCommandExecutionResponseDto>> ExecuteCommand(
+            [FromBody] DeviceCommandRequestDto request,
+            [FromQuery] bool waitForResponse = false,
+            CancellationToken ct = default)
         {
             if (!TryGetAuthenticatedUserId(out int userId))
                 return Unauthorized();
 
-            DeviceCommandResponseDto response = await _service.CreateDeviceCommand(request, userId, ct);
+            DeviceCommandExecutionResponseDto response = await _service.CreateDeviceCommand(
+                request,
+                userId,
+                waitForResponse,
+                ct);
+
+            if (response.Responded)
+                return Ok(response);
 
             return AcceptedAtAction(
                 nameof(GetDeviceCommandById),
-                new { commandId = response.Id },
+                new { commandId = response.Command.Id },
                 response);
         }
 

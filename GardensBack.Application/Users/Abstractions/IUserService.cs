@@ -8,10 +8,10 @@ namespace GardensBack.Application.Users.Abstractions
         Task<OperationResult<UserRegisterRequest>> CreateUser(UserRegisterRequest user, CancellationToken ct);
         Task<OperationResult<UserRegisterRequest>> Register(UserRegisterRequest user, CancellationToken ct);
         Task<OperationResult<UserRegisterRequest>> CreateUserMiddleware(UserRegisterRequest user, CancellationToken ct);
-        Task<OperationResult<UserRegisterRequest>> UpdateUser(UserRegisterRequest user, CancellationToken ct);
-        Task<OperationResult<int>> DeleteUser(int id, CancellationToken ct);
-        Task<OperationResult<UserRegisterRequest>> GetUserById(int id, CancellationToken ct);
-        Task<OperationResult<UserRegisterRequest>> GetUserByEmail(string email, CancellationToken ct);
+        Task<OperationResult<UserRegisterRequest>> UpdateUser(UserRegisterRequest user, int requestedByUserId, bool isAdmin, CancellationToken ct);
+        Task<OperationResult<int>> DeleteUser(int id, int requestedByUserId, bool isAdmin, CancellationToken ct);
+        Task<OperationResult<UserRegisterRequest>> GetUserById(int id, int requestedByUserId, bool isAdmin, CancellationToken ct);
+        Task<OperationResult<UserRegisterRequest>> GetUserByEmail(string email, int requestedByUserId, bool isAdmin, CancellationToken ct);
         Task<OperationResult<IEnumerable<UserRegisterRequest>>> GetAllUsers(int? roleId, string? roleName, CancellationToken ct);
     }
 }

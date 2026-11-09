@@ -15,6 +15,7 @@ namespace GardensBack.Application
 {
     using GardensBack.Application.DeviceInventory.Abstractions;
     using GardensBack.Application.DeviceInventory.Repositories;
+    using GardensBack.Application.DeviceInventory.Services;
     using GardensBack.Application.DeviceProvisioning.Services;
     using GardensBack.Application.FirmwareReleases.Abstractions;
     using GardensBack.Application.FirmwareReleases.Repositories;
@@ -37,6 +38,7 @@ namespace GardensBack.Application
             services.AddScoped<IDeviceProvisioningService, DeviceProvisioningService>();
             services.AddScoped<IDeviceConnectivityConfigurationService, DeviceConnectivityConfigurationService>();
             services.AddScoped<IDeviceInventoryService, DeviceInventoryService>();
+            services.AddSingleton<IDeviceCommandResponseWaiter, DeviceCommandResponseWaiter>();
             services.AddScoped<IFirmwareReleaseService, FirmwareReleaseService>();
             services.AddScoped<IFirmwareManifestService, FirmwareManifestService>();
             services.AddScoped<IDeviceFirmwareUpdateService, DeviceFirmwareUpdateService>();

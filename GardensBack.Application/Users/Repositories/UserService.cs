@@ -73,7 +73,11 @@ namespace GardensBack.Application.Users.Repositories
             return OperationResult<UserRegisterRequest>.Failure(nameof(CreateUser), 400, "Usuario no creado");
         }
 
-        public async Task<OperationResult<UserRegisterRequest>> UpdateUser(UserRegisterRequest user, CancellationToken ct)
+        public async Task<OperationResult<UserRegisterRequest>> UpdateUser(
+            UserRegisterRequest user,
+            int requestedByUserId,
+            bool isAdmin,
+            CancellationToken ct)
         {
             ValidateRequest(user);
 
@@ -90,6 +94,11 @@ namespace GardensBack.Application.Users.Repositories
                 throw new NotFoundException("User not found");
             }
 
+            ValidateUserAccess(userId, requestedByUserId, isAdmin);
+
+            if (!isAdmin && user.RoleId != foundUser.Result.RoleId)
+                throw new ForbiddenException("Solo un administrador puede cambiar el rol de un usuario.");
+
             var foundEmail = await _userRepository.GetUserByEmail(user.Email, ct);
 
             if (foundEmail.Successful && foundEmail.Result is not null && foundEmail.Result.Id != userId)
@@ -99,6 +108,14 @@ namespace GardensBack.Application.Users.Repositories
 
             User userToUpdate = foundUser.Result;
             _mapper.Map(user, userToUpdate);
+
+            if (isAdmin)
+            {
+                Role role = await GetRoleById(user.RoleId, ct);
+                userToUpdate.Role = role;
+                userToUpdate.RoleId = role.Id;
+            }
+
             userToUpdate.PasswordHash = PasswordUtility.Hash(userToUpdate, user.Password);
 
             if (await _userRepository.SaveChanges(ct))
@@ -114,8 +131,10 @@ namespace GardensBack.Application.Users.Repositories
                 "Usuario no actualizado");
         }
 
-        public async Task<OperationResult<int>> DeleteUser(int id, CancellationToken ct)
+        public async Task<OperationResult<int>> DeleteUser(int id, int requestedByUserId, bool isAdmin, CancellationToken ct)
         {
+            ValidateUserAccess(id, requestedByUserId, isAdmin);
+
             if (await _userRepository.GetUserById(id, ct) is OperationResult<User> result && result.Result is not null && result.Successful)
             {
                 return await _userRepository.DeleteUser(id, ct);
@@ -124,8 +143,10 @@ namespace GardensBack.Application.Users.Repositories
             throw new NotFoundException("User not found");
         }
 
-        public async Task<OperationResult<UserRegisterRequest>> GetUserById(int id, CancellationToken ct)
+        public async Task<OperationResult<UserRegisterRequest>> GetUserById(int id, int requestedByUserId, bool isAdmin, CancellationToken ct)
         {
+            ValidateUserAccess(id, requestedByUserId, isAdmin);
+
             var result = await _userRepository.GetUserById(id, ct);
 
             if (result.Successful && result.Result is not null)
@@ -136,12 +157,13 @@ namespace GardensBack.Application.Users.Repositories
             throw new NotFoundException("User not found");
         }
 
-        public async Task<OperationResult<UserRegisterRequest>> GetUserByEmail(string email, CancellationToken ct)
+        public async Task<OperationResult<UserRegisterRequest>> GetUserByEmail(string email, int requestedByUserId, bool isAdmin, CancellationToken ct)
         {
             var result = await _userRepository.GetUserByEmail(email, ct);
 
             if (result.Successful && result.Result is not null)
             {
+                ValidateUserAccess(result.Result.Id, requestedByUserId, isAdmin);
                 return OperationResult<UserRegisterRequest>.Success(nameof(GetUserById), _mapper.Map<User, UserRegisterRequest>(result.Result));
             }
 
@@ -189,6 +211,15 @@ namespace GardensBack.Application.Users.Repositories
             if (request is null) throw new ValidationException("Body required");
 
             request.Validate();
+        }
+
+        private static void ValidateUserAccess(int targetUserId, int requestedByUserId, bool isAdmin)
+        {
+            if (requestedByUserId <= 0)
+                throw new UnathorizedException("La identidad del usuario no es válida.");
+
+            if (!isAdmin && targetUserId != requestedByUserId)
+                throw new ForbiddenException("El usuario autenticado no puede operar sobre otra cuenta.");
         }
     }
 }

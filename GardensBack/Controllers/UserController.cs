@@ -5,6 +5,8 @@ using GardensBack.Domain.Constants;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
 
 namespace GardensBack.Controllers
 {
@@ -60,7 +62,12 @@ namespace GardensBack.Controllers
         /// <returns>El resultado de la actualización.</returns>
         [HttpPut("UpdateUser")]
         public async Task<ActionResult<OperationResult<UserRegisterRequest>>> UpdateUser([FromBody] UserRegisterRequest user, CancellationToken ct)
-            => Ok(await _userService.UpdateUser(user, ct));
+        {
+            if (!TryGetAuthenticatedUserId(out int userId))
+                return Unauthorized();
+
+            return Ok(await _userService.UpdateUser(user, userId, User.IsInRole(BaseRoles.Admin), ct));
+        }
 
         /// <summary>
         /// Desactiva un usuario por su identificador.
@@ -70,7 +77,12 @@ namespace GardensBack.Controllers
         /// <returns>El resultado de la desactivación.</returns>
         [HttpDelete("DeleteUser/{id:int}")]
         public async Task<ActionResult<OperationResult<int>>> DeleteUser([FromRoute] int id, CancellationToken ct)
-            => Ok(await _userService.DeleteUser(id, ct));
+        {
+            if (!TryGetAuthenticatedUserId(out int userId))
+                return Unauthorized();
+
+            return Ok(await _userService.DeleteUser(id, userId, User.IsInRole(BaseRoles.Admin), ct));
+        }
 
         /// <summary>
         /// Obtiene un usuario activo por su identificador.
@@ -80,7 +92,12 @@ namespace GardensBack.Controllers
         /// <returns>El usuario encontrado.</returns>
         [HttpGet("GetUserById/{id:int}")]
         public async Task<ActionResult<OperationResult<UserRegisterRequest>>> GetUserById([FromRoute] int id, CancellationToken ct)
-            => Ok(await _userService.GetUserById(id, ct));
+        {
+            if (!TryGetAuthenticatedUserId(out int userId))
+                return Unauthorized();
+
+            return Ok(await _userService.GetUserById(id, userId, User.IsInRole(BaseRoles.Admin), ct));
+        }
 
         /// <summary>
         /// Obtiene un usuario por su correo electrónico.
@@ -90,7 +107,12 @@ namespace GardensBack.Controllers
         /// <returns>El usuario encontrado.</returns>
         [HttpGet("GetUserByEmail")]
         public async Task<ActionResult<OperationResult<UserRegisterRequest>>> GetUserByEmail([FromQuery] string email, CancellationToken ct)
-            => Ok(await _userService.GetUserByEmail(email, ct));
+        {
+            if (!TryGetAuthenticatedUserId(out int userId))
+                return Unauthorized();
+
+            return Ok(await _userService.GetUserByEmail(email, userId, User.IsInRole(BaseRoles.Admin), ct));
+        }
 
         /// <summary>
         /// Obtiene los usuarios filtrados opcionalmente por rol.
@@ -104,5 +126,7 @@ namespace GardensBack.Controllers
         public async Task<ActionResult<OperationResult<IEnumerable<UserRegisterRequest>>>> GetAllUsers([FromQuery] int? roleId,[FromQuery] string? roleName,CancellationToken ct)
             => Ok(await _userService.GetAllUsers(roleId, roleName, ct));
 
+        private bool TryGetAuthenticatedUserId(out int userId)
+            => int.TryParse(User.FindFirstValue(JwtRegisteredClaimNames.Sub), out userId);
     }
 }

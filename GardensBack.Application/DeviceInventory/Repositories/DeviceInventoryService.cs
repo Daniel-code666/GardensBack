@@ -19,6 +19,7 @@ namespace GardensBack.Application.DeviceInventory.Repositories
         IDeviceFirmwareUpdateRepository firmwareUpdateRepository, IDeviceActionPublisher publisher,
         IDeviceCommandKeyProtector commandKeyProtector,
         ICommandAuthenticationService<DeviceActionMessage> authenticationService,
+        IDeviceCommandResponseWaiter responseWaiter,
         IMapper mapper) : IDeviceInventoryService
     {
         private readonly IDeviceInventoryRepository _deviceRepository = deviceRepository;
@@ -27,15 +28,20 @@ namespace GardensBack.Application.DeviceInventory.Repositories
         private readonly IDeviceActionPublisher _publisher = publisher;
         private readonly IDeviceCommandKeyProtector _commandKeyProtector = commandKeyProtector;
         private readonly ICommandAuthenticationService<DeviceActionMessage> _authenticationService = authenticationService;
+        private readonly IDeviceCommandResponseWaiter _responseWaiter = responseWaiter;
         private static readonly TimeSpan CommandExpiration = TimeSpan.FromSeconds(30);
+        private static readonly TimeSpan ImmediateResponseTimeout = TimeSpan.FromSeconds(10);
         private static readonly JsonSerializerOptions CommandJsonOptions = CreateCommandJsonOptions();
 
-        public async Task<DeviceInventoryGeneralDto> AddDevice(DeviceInventoryGeneralDto device, CancellationToken ct)
+        public async Task<DeviceInventoryGeneralDto> AddDevice(DeviceInventoryGeneralDto device, int requestedByUserId, CancellationToken ct)
         {
             device.Validate();
+            ValidateRequestedByUserId(requestedByUserId);
 
             MicrocontrollerDevice foundMicrocontroller = await _deviceRepository.FindById(device.MicrocontrollerDeviceId, true, ct)
                 ?? throw new NotFoundException("Microcontrolador no encontrado.");
+
+            ValidateDeviceOwnership(foundMicrocontroller, requestedByUserId);
 
             bool hasAnyI2cValue = device.I2cSdaPin.HasValue || device.I2cSclPin.HasValue || device.I2cAddress.HasValue;
 
@@ -76,12 +82,21 @@ namespace GardensBack.Application.DeviceInventory.Repositories
             return _mapper.Map<DeviceInventoryGeneralDto>(deviceToSave);
         }
 
-        public async Task<bool> SetDeviceState(int[] deviceIds, bool state, CancellationToken ct)
+        public async Task<bool> SetDeviceState(int[] deviceIds, bool state, int requestedByUserId, CancellationToken ct)
         {
-            IEnumerable<Device> foundDevices = await _deviceRepository.GetDevicesByIds(deviceIds, ct);
+            ValidateRequestedByUserId(requestedByUserId);
 
-            if (!foundDevices.Any())
-                return false;
+            if (deviceIds is null || deviceIds.Length == 0 || deviceIds.Any(id => id <= 0))
+                throw new ValidationException("Debe especificar al menos un dispositivo válido.");
+
+            int[] requestedDeviceIds = [.. deviceIds.Distinct()];
+            List<Device> foundDevices = [.. await _deviceRepository.GetDevicesByIds(requestedDeviceIds, ct)];
+
+            if (foundDevices.Count != requestedDeviceIds.Length)
+                throw new NotFoundException("Uno o más dispositivos no fueron encontrados.");
+
+            if (foundDevices.Any(device => device.MicroCtrlDevice.UserId != requestedByUserId))
+                throw new ForbiddenException("Uno o más dispositivos no pertenecen al usuario autenticado.");
 
             foreach(Device device in foundDevices)
             {
@@ -93,17 +108,34 @@ namespace GardensBack.Application.DeviceInventory.Repositories
             return true;
         }
 
-        public async Task<IReadOnlyCollection<DeviceInventoryGeneralDto>> GetAllDevicesByMicrocontrollerId(DeviceInventoryFilters request, CancellationToken ct)
+        public async Task<IReadOnlyCollection<DeviceInventoryGeneralDto>> GetAllDevicesByMicrocontrollerId(
+            DeviceInventoryFilters request,
+            int requestedByUserId,
+            CancellationToken ct)
         {
+            ValidateRequestedByUserId(requestedByUserId);
+
+            if (request.TelemtryPerRequest is < 1 or > 100)
+                throw new ValidationException("La cantidad de registros de telemetría debe estar entre 1 y 100.");
+
             MicrocontrollerDevice foundMicrocontroller = await _deviceRepository.FindById(request.SelectedMicrocontrollerId, false, ct) 
                 ?? throw new NotFoundException("Microcontrolador no encontrado.");
+
+            ValidateDeviceOwnership(foundMicrocontroller, requestedByUserId);
 
             return _mapper.Map<IReadOnlyCollection<DeviceInventoryGeneralDto>>(await _deviceRepository.GetAllDevicesByMicrocontrollerId(request, ct));
         }
 
-        public async Task<DeviceInventoryGeneralDto?> GetDeviceById(int deviceId, CancellationToken ct)
-            => await _deviceRepository.GetDeviceById(deviceId, ct) is Device foundDevice ? _mapper.Map<DeviceInventoryGeneralDto>(foundDevice) 
-                : throw new NotFoundException("Dispositivo no encontrado.");
+        public async Task<DeviceInventoryGeneralDto?> GetDeviceById(int deviceId, int requestedByUserId, CancellationToken ct)
+        {
+            ValidateRequestedByUserId(requestedByUserId);
+
+            Device foundDevice = await _deviceRepository.GetDeviceById(deviceId, ct)
+                ?? throw new NotFoundException("Dispositivo no encontrado.");
+
+            ValidateDeviceOwnership(foundDevice.MicroCtrlDevice, requestedByUserId);
+            return _mapper.Map<DeviceInventoryGeneralDto>(foundDevice);
+        }
 
         public async Task ProcessInventory(DeviceInventoryMessage inventory, CancellationToken ct)
         {
@@ -147,15 +179,18 @@ namespace GardensBack.Application.DeviceInventory.Repositories
                 await _firmwareUpdateRepository.CompleteConfirmedIfReady(update.Id, DateTime.UtcNow, ct);
         }
 
-        public async Task<DeviceInventoryGeneralDto> UpdateDevice(DeviceInventoryGeneralDto device, CancellationToken ct)
+        public async Task<DeviceInventoryGeneralDto> UpdateDevice(DeviceInventoryGeneralDto device, int requestedByUserId, CancellationToken ct)
         {
             device.Validate();
+            ValidateRequestedByUserId(requestedByUserId);
 
             if (!device.Id.HasValue)
                 throw new ValidationException("El Id del dispositivo es obligatorio para actualizarlo.");
 
             Device foundDevice = await _deviceRepository.GetDeviceById(device.Id.Value, ct)
                 ?? throw new NotFoundException("Dispositivo no encontrado.");
+
+            ValidateDeviceOwnership(foundDevice.MicroCtrlDevice, requestedByUserId);
 
             if (device.DeviceType == DeviceType.Actuator && (device.MeasurementType.HasValue || device.MeasurementUnit.HasValue))
                 throw new ValidationException("Dispositivos de tipo actuador no pueden tener tipo o unidad de medición.");
@@ -191,9 +226,19 @@ namespace GardensBack.Application.DeviceInventory.Repositories
             return _mapper.Map<DeviceInventoryGeneralDto>(foundDevice);
         }
 
-        public async Task<DeviceInventoryGeneralDto?> GetDeviceByLocalId(GetDeviceByLocalIdDto request, CancellationToken ct)
-            => await  _deviceRepository.GetDeviceByLocalId(request, ct) is Device foundDevice ? 
-                _mapper.Map<DeviceInventoryGeneralDto>(foundDevice) : throw new NotFoundException("Dispositivo no encontrado.");
+        public async Task<DeviceInventoryGeneralDto?> GetDeviceByLocalId(
+            GetDeviceByLocalIdDto request,
+            int requestedByUserId,
+            CancellationToken ct)
+        {
+            ValidateRequestedByUserId(requestedByUserId);
+
+            Device foundDevice = await _deviceRepository.GetDeviceByLocalId(request, ct)
+                ?? throw new NotFoundException("Dispositivo no encontrado.");
+
+            ValidateDeviceOwnership(foundDevice.MicroCtrlDevice, requestedByUserId);
+            return _mapper.Map<DeviceInventoryGeneralDto>(foundDevice);
+        }
 
         public async Task ProcessTelemetry(string microcontrollerDeviceId, DeviceTelemetryMessage telemetry, CancellationToken ct)
         {
@@ -208,14 +253,36 @@ namespace GardensBack.Application.DeviceInventory.Repositories
                 await _deviceRepository.SaveChanges(ct);
         }
 
-        public async Task<IEnumerable<DeviceTelemetryDto>> GetTelemetryForDevices(GetTelemetryForDevicesDto devicesDto, CancellationToken ct)
+        public async Task<IEnumerable<DeviceTelemetryDto>> GetTelemetryForDevices(
+            GetTelemetryForDevicesDto devicesDto,
+            int requestedByUserId,
+            CancellationToken ct)
         {
-            IEnumerable<Device> foundDevices = await _deviceRepository.GetDevicesWithTelemetry(devicesDto.DevicesIds, devicesDto.ItemPerRequest, ct);
+            ValidateRequestedByUserId(requestedByUserId);
+
+            if (devicesDto.DevicesIds is null || devicesDto.DevicesIds.Length == 0 ||
+                devicesDto.DevicesIds.Any(id => id <= 0))
+                throw new ValidationException("Debe especificar al menos un dispositivo válido.");
+
+            if (devicesDto.ItemPerRequest is < 1 or > 100)
+                throw new ValidationException("La cantidad de registros de telemetría debe estar entre 1 y 100.");
+
+            int[] requestedDeviceIds = [.. devicesDto.DevicesIds.Distinct()];
+            List<Device> foundDevices = [.. await _deviceRepository.GetDevicesWithTelemetry(
+                requestedDeviceIds,
+                devicesDto.ItemPerRequest,
+                ct)];
+
+            if (foundDevices.Count != requestedDeviceIds.Length)
+                throw new NotFoundException("Uno o más dispositivos no fueron encontrados.");
+
+            if (foundDevices.Any(device => device.MicroCtrlDevice.UserId != requestedByUserId))
+                throw new ForbiddenException("Uno o más dispositivos no pertenecen al usuario autenticado.");
 
             return _mapper.Map<IEnumerable<DeviceTelemetryDto>>(foundDevices);
         }
 
-        public async Task<DeviceCommandResponseDto> CreateDeviceCommand(DeviceCommandRequestDto request, int requestedByUserId, CancellationToken ct)
+        public async Task<DeviceCommandExecutionResponseDto> CreateDeviceCommand(DeviceCommandRequestDto request, int requestedByUserId, bool waitForResponse, CancellationToken ct)
         {
             request.Validate();
 
@@ -271,24 +338,44 @@ namespace GardensBack.Application.DeviceInventory.Repositories
                     BuildCommandParameters(devices, request));
 
                 message.AuthenticationTag = _authenticationService.Sign(message, commandKey);
+                Task<DeviceActionResultMessage?>? responseTask = waitForResponse ? _responseWaiter.WaitAsync(requestId, ImmediateResponseTimeout, ct) : null;
 
-                var command = new DeviceCommand
+                try
                 {
-                    Command = request.Command.ToString(),
-                    RequestId = requestId,
-                    CommandVersion = commandVersion,
-                    Payload = JsonSerializer.Serialize(message, CommandJsonOptions),
-                    Status = CommandStatus.Pending,
-                    ExpiresAt = now.Add(CommandExpiration),
-                    MicroCtrlDeviceId = microcontroller.Id,
-                    MicroCtrlDevice = microcontroller
-                };
+                    var command = new DeviceCommand
+                    {
+                        Command = request.Command.ToString(),
+                        RequestId = requestId,
+                        CommandVersion = commandVersion,
+                        Payload = JsonSerializer.Serialize(message, CommandJsonOptions),
+                        Status = CommandStatus.Pending,
+                        ExpiresAt = now.Add(CommandExpiration),
+                        MicroCtrlDeviceId = microcontroller.Id,
+                        MicroCtrlDevice = microcontroller
+                    };
 
-                await _deviceRepository.AddCommand(command, ct);
-                await _deviceRepository.SaveChanges(ct);
-                await PublishActionCommandMessage(command, message, ct);
+                    await _deviceRepository.AddCommand(command, ct);
+                    await _deviceRepository.SaveChanges(ct);
+                    await PublishActionCommandMessage(command, message, ct);
 
-                return _mapper.Map<DeviceCommandResponseDto>(command);
+                    DeviceActionResultMessage? deviceResponse = responseTask is null ? null : await responseTask;
+
+                    if (deviceResponse is not null)
+                        await _deviceRepository.ReloadCommand(command, ct);
+
+                    return new DeviceCommandExecutionResponseDto
+                    {
+                        Command = _mapper.Map<DeviceCommandResponseDto>(command),
+                        DeviceResponse = deviceResponse
+                    };
+                }
+                catch
+                {
+                    if (responseTask is not null)
+                        _responseWaiter.Cancel(requestId);
+
+                    throw;
+                }
             }
             finally
             {
@@ -433,6 +520,7 @@ namespace GardensBack.Application.DeviceInventory.Repositories
                 ct);
 
             await _deviceRepository.SaveChanges(ct);
+            _responseWaiter.Complete(response.RequestId, response);
         }
 
         public Task<int> ExpireDeviceCommands(DateTime utcNow, CancellationToken ct)
@@ -555,7 +643,7 @@ namespace GardensBack.Application.DeviceInventory.Repositories
         private static void ValidateDeviceOwnership(MicrocontrollerDevice microcontroller, int requestedByUserId)
         {
             if (microcontroller.UserId != requestedByUserId)
-                throw new UnathorizedException("El microcontrolador no pertenece al usuario autenticado.");
+                throw new ForbiddenException("El microcontrolador no pertenece al usuario autenticado.");
         }
 
         private static IReadOnlyCollection<DeviceActionParameter> BuildCommandParameters(

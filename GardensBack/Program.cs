@@ -1,4 +1,5 @@
 using GardensBack.Application;
+using GardensBack.Application.DeviceInventory.Configuration;
 using GardensBack.Application.DeviceProvisioning.Configuration;
 using GardensBack.Application.FirmwareReleases.Configuration;
 using GardensBack.Application.FirmwareUpdates.Configuration;
@@ -119,6 +120,11 @@ builder.Services.AddOptions<DeviceCommandSecurityOptions>()
             return false;
         }
     }, "DeviceCommandSecurity:EncryptionKey debe contener 32 bytes codificados en Base64.")
+    .ValidateOnStart();
+
+builder.Services.AddOptions<DeviceCommandExpirationOptions>()
+    .Bind(builder.Configuration.GetSection(DeviceCommandExpirationOptions.SectionName))
+    .Validate(options => options.SweepIntervalSeconds is >= 1 and <= 60, "El intervalo de expiración debe estar entre 1 y 60 segundos.")
     .ValidateOnStart();
 
 var app = builder.Build();
