@@ -127,6 +127,14 @@ builder.Services.AddOptions<DeviceCommandExpirationOptions>()
     .Validate(options => options.SweepIntervalSeconds is >= 1 and <= 60, "El intervalo de expiración debe estar entre 1 y 60 segundos.")
     .ValidateOnStart();
 
+builder.Services.AddCors(o =>
+{
+    o.AddPolicy("FrontNoProxy", policy =>
+    {
+        policy.WithOrigins("http://localhost:4401").AllowAnyHeader().AllowAnyMethod();
+    });
+});
+
 var app = builder.Build();
 
 if (app.Configuration.GetValue<bool>("Database:InitializeOnStartup"))
@@ -150,6 +158,8 @@ if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
 }
+
+app.UseCors("FrontNoProxy");
 
 app.UseHttpsRedirection();
 
