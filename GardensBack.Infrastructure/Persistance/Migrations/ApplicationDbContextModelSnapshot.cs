@@ -716,6 +716,9 @@ namespace GardensBack.Infrastructure.Persistance.Migrations
                     b.Property<bool>("Active")
                         .HasColumnType("boolean");
 
+                    b.Property<bool>("AdministrativeRole")
+                        .HasColumnType("boolean");
+
                     b.Property<DateTime>("CreationDate")
                         .HasColumnType("timestamp with time zone");
 

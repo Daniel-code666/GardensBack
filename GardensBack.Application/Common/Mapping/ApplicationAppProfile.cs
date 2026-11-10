@@ -31,6 +31,10 @@ namespace GardensBack.Application.Common.Mapping
                 .ForMember(x => x.Password, o => o.Ignore())
                 .ForMember(x => x.RoleName, o => o.MapFrom(x => x.Role.Name));
 
+            CreateMap<InitialUserRegisterRequest, User>()
+                .ForMember(x => x.PasswordHash, o => o.MapFrom(x => x.Password))
+                .ReverseMap();
+
             CreateMap<RoleRegisterRequest, Role>()
                 .ForMember(x => x.Id, o => o.Ignore())
                 .ReverseMap()
@@ -41,7 +45,8 @@ namespace GardensBack.Application.Common.Mapping
                 .ForMember(x => x.RoleId, o => o.MapFrom(x => x.RoleId))
                 .ReverseMap()
                 .ForMember(x => x.RoleName, o => o.MapFrom(x => x.Role.Name))
-                .ForMember(x => x.RoleId, o => o.MapFrom(x => x.RoleId));
+                .ForMember(x => x.RoleId, o => o.MapFrom(x => x.RoleId))
+                .ForMember(x => x.IsAdmin, o => o.MapFrom(x => x.Role.AdministrativeRole));
 
             CreateMap<SaveDeviceConnectivityConfigurationRequest, DeviceConnectivityConfiguration>()
                 .ForMember(x => x.Id, o => o.Ignore())

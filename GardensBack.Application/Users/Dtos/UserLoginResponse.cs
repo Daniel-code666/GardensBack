@@ -8,5 +8,6 @@
         public string Email { get; set; } = string.Empty;
         public string RoleName { get; set; } = string.Empty;
         public int RoleId { get; set; }
+        public bool IsAdmin { get; set; } = false;
     }
 }

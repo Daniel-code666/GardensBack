@@ -40,7 +40,7 @@ namespace GardensBack.Controllers
         /// <returns>El resultado del registro.</returns>
         [AllowAnonymous]
         [HttpPost("Register")]
-        public async Task<ActionResult<OperationResult<UserRegisterRequest>>> Register([FromBody] UserRegisterRequest user, CancellationToken ct)
+        public async Task<ActionResult<OperationResult<InitialUserRegisterRequest>>> Register([FromBody] InitialUserRegisterRequest user, CancellationToken ct)
             => Ok(await _userService.Register(user, ct));
 
         /// <summary>

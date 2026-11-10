@@ -10,7 +10,8 @@ namespace GardensBack.Application.Roles.Dtos
         public required string Name { get; set; }
         [Required]
         public required string Description { get; set; }
-
+        [Required]
+        public required bool AdministrativeRole { get; set; } = false;
         public void Validate()
             => ValidationUtilities.ValidateObject(this);
     }

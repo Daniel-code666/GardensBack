@@ -27,7 +27,7 @@ namespace GardensBack.Application.Authentication.Repositories
                 User user = result.Result;
 
                 if (!PasswordUtility.Verify(user, request.Password))
-                    throw new UnathorizedException("Wrong password");
+                    throw new UnathorizedException("Contraseña incorrecta");
 
                 (string accessToken, DateTime expiresAtUtc) = _tokenGenerator.CreateToken(user);
 
@@ -36,16 +36,16 @@ namespace GardensBack.Application.Authentication.Repositories
                     AccessToken = accessToken,
                     TokenType = "Bearer",
                     ExpiresAtUtc = expiresAtUtc,
-                    User = _mapper.Map<UserLoginResponse>(user)
+                    User = _mapper.Map<UserLoginResponse>(user),
                 };
             }
 
-            throw new NotFoundException("User not found");
+            throw new NotFoundException("Userio no encontrado");
         }
 
         private static void ValidateRequest(LoginRequest request)
         {
-            if (request is null) throw new ValidationException("Body required");
+            if (request is null) throw new ValidationException("Cuerpo de petición requerido");
 
             request.Validate();
         }

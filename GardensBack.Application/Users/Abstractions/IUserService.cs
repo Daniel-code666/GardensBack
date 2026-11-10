@@ -6,7 +6,7 @@ namespace GardensBack.Application.Users.Abstractions
     public interface IUserService
     {
         Task<OperationResult<UserRegisterRequest>> CreateUser(UserRegisterRequest user, CancellationToken ct);
-        Task<OperationResult<UserRegisterRequest>> Register(UserRegisterRequest user, CancellationToken ct);
+        Task<OperationResult<InitialUserRegisterRequest>> Register(InitialUserRegisterRequest user, CancellationToken ct);
         Task<OperationResult<UserRegisterRequest>> CreateUserMiddleware(UserRegisterRequest user, CancellationToken ct);
         Task<OperationResult<UserRegisterRequest>> UpdateUser(UserRegisterRequest user, int requestedByUserId, bool isAdmin, CancellationToken ct);
         Task<OperationResult<int>> DeleteUser(int id, int requestedByUserId, bool isAdmin, CancellationToken ct);

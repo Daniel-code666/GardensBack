@@ -13,6 +13,7 @@ namespace GardensBack.Domain.Entities
         public int Id { get; set; }
         public string Name { get; set; } = "";
         public string Description { get; set; } = "";
+        public bool AdministrativeRole { get; set; }
 
         // relaciones
         public ICollection<User> Users { get; set; } = [];

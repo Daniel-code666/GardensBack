@@ -35,12 +35,11 @@ namespace GardensBack.Application.Users.Repositories
             return OperationResult<UserRegisterRequest>.Failure(nameof(CreateUser), 400, "Usuario no creado");
         }
 
-        public async Task<OperationResult<UserRegisterRequest>> Register(UserRegisterRequest user, CancellationToken ct)
+        public async Task<OperationResult<InitialUserRegisterRequest>> Register(InitialUserRegisterRequest user, CancellationToken ct)
         {
-            ValidateRequest(user);
-
+            user.Validate();
             Role role = await GetRoleByName(BaseRoles.NormalUser, ct);
-            User userToCreate = _mapper.Map<UserRegisterRequest, User>(user);
+            User userToCreate = _mapper.Map<InitialUserRegisterRequest, User>(user);
             userToCreate.Role = role;
             userToCreate.PasswordHash = PasswordUtility.Hash(userToCreate, user.Password);
 
@@ -48,10 +47,10 @@ namespace GardensBack.Application.Users.Repositories
 
             if (result.Result != null && result.Successful)
             {
-                return OperationResult<UserRegisterRequest>.Success(nameof(CreateUser), _mapper.Map<User, UserRegisterRequest>(result.Result));
+                return OperationResult<InitialUserRegisterRequest>.Success(nameof(CreateUser), _mapper.Map<User, InitialUserRegisterRequest>(result.Result));
             }
 
-            return OperationResult<UserRegisterRequest>.Failure(nameof(CreateUser), 400, "Usuario no creado");
+            return OperationResult<InitialUserRegisterRequest>.Failure(nameof(CreateUser), 400, "Usuario no creado");
         }
 
         public async Task<OperationResult<UserRegisterRequest>> CreateUserMiddleware(UserRegisterRequest user, CancellationToken ct)
