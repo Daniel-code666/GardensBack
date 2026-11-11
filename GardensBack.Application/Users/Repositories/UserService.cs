@@ -93,7 +93,7 @@ namespace GardensBack.Application.Users.Repositories
                 throw new NotFoundException("User not found");
             }
 
-            ValidateUserAccess(userId, requestedByUserId, isAdmin);
+            ValidateUserAccess([userId], requestedByUserId, isAdmin);
 
             if (!isAdmin && user.RoleId != foundUser.Result.RoleId)
                 throw new ForbiddenException("Solo un administrador puede cambiar el rol de un usuario.");
@@ -130,21 +130,21 @@ namespace GardensBack.Application.Users.Repositories
                 "Usuario no actualizado");
         }
 
-        public async Task<OperationResult<int>> DeleteUser(int id, int requestedByUserId, bool isAdmin, CancellationToken ct)
+        public async Task<OperationResult<int[]>> DeleteUser(UserDeleteRequest selectedIds, int requestedByUserId, bool isAdmin, CancellationToken ct)
         {
-            ValidateUserAccess(id, requestedByUserId, isAdmin);
+            ValidateUserAccess(selectedIds.SelectedIds, requestedByUserId, isAdmin);
 
-            if (await _userRepository.GetUserById(id, ct) is OperationResult<User> result && result.Result is not null && result.Successful)
+            if (await _userRepository.CheckUsersExists(selectedIds.SelectedIds, true, ct))
             {
-                return await _userRepository.DeleteUser(id, ct);
+                return await _userRepository.DeleteUser(selectedIds.SelectedIds, ct);
             }
 
-            throw new NotFoundException("User not found");
+            throw new NotFoundException("Usuarios no encontrados");
         }
 
         public async Task<OperationResult<UserRegisterRequest>> GetUserById(int id, int requestedByUserId, bool isAdmin, CancellationToken ct)
         {
-            ValidateUserAccess(id, requestedByUserId, isAdmin);
+            ValidateUserAccess([id], requestedByUserId, isAdmin);
 
             var result = await _userRepository.GetUserById(id, ct);
 
@@ -162,7 +162,7 @@ namespace GardensBack.Application.Users.Repositories
 
             if (result.Successful && result.Result is not null)
             {
-                ValidateUserAccess(result.Result.Id, requestedByUserId, isAdmin);
+                ValidateUserAccess([result.Result.Id], requestedByUserId, isAdmin);
                 return OperationResult<UserRegisterRequest>.Success(nameof(GetUserById), _mapper.Map<User, UserRegisterRequest>(result.Result));
             }
 
@@ -212,12 +212,12 @@ namespace GardensBack.Application.Users.Repositories
             request.Validate();
         }
 
-        private static void ValidateUserAccess(int targetUserId, int requestedByUserId, bool isAdmin)
+        private static void ValidateUserAccess(int[] targetUserIds, int requestedByUserId, bool isAdmin)
         {
             if (requestedByUserId <= 0)
                 throw new UnathorizedException("La identidad del usuario no es válida.");
 
-            if (!isAdmin && targetUserId != requestedByUserId)
+            if (!isAdmin && targetUserIds.Any(x => x != requestedByUserId))
                 throw new ForbiddenException("El usuario autenticado no puede operar sobre otra cuenta.");
         }
     }

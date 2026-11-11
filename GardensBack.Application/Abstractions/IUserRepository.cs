@@ -9,8 +9,9 @@ namespace GardensBack.Application.Abstractions
         Task<OperationResult<IEnumerable<User>>> GetAllUsers(int? roleId, string? roleName, CancellationToken ct);
         Task<OperationResult<User>> CreateUser(User user, CancellationToken ct);
         Task<OperationResult<User>> CreateUserMiddleware(User user, CancellationToken ct);
-        Task<OperationResult<int>> DeleteUser(int id, CancellationToken ct);
+        Task<OperationResult<int[]>> DeleteUser(int[] ids, CancellationToken ct);
         Task<OperationResult<User>> GetUserById(int id, CancellationToken ct);
+        Task<bool> CheckUsersExists(int[] ids, bool state, CancellationToken ct);
         Task<OperationResult<string>> GetUserEmailById(int id, CancellationToken ct);
         Task<bool> HasAdmin(CancellationToken ct);
         Task<bool> SaveChanges(CancellationToken ct);

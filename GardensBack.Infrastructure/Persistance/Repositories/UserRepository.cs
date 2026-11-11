@@ -33,13 +33,13 @@ namespace GardensBack.Infrastructure.Persistance.Repositories
                     ct);
         }
 
-        public async Task<OperationResult<int>> DeleteUser(int id, CancellationToken ct)
+        public async Task<OperationResult<int[]>> DeleteUser(int[] ids, CancellationToken ct)
         {
-            await _db.Users.Where(x => x.Id == id).ExecuteUpdateAsync(s => s.SetProperty(x => x.Active, false), ct);
+            await _db.Users.Where(x => ids.Contains(x.Id)).ExecuteUpdateAsync(s => s.SetProperty(x => x.Active, false), ct);
 
             await SaveChanges(ct);
 
-            return OperationResult<int>.Success(nameof(DeleteUser), id);
+            return OperationResult<int[]>.Success(nameof(DeleteUser), ids);
         }
 
         public async Task<OperationResult<IEnumerable<User>>> GetAllUsers(int? roleId, string? roleName, CancellationToken ct)
@@ -55,6 +55,9 @@ namespace GardensBack.Infrastructure.Persistance.Repositories
 
         public async Task<OperationResult<User>> GetUserById(int id, CancellationToken ct)
             => OperationResult<User>.Success(nameof(GetUserById), await _db.Users.Include(x => x.Role).SingleOrDefaultAsync(x => x.Id == id && x.Active, ct));
+
+        public async Task<bool> CheckUsersExists(int[] ids, bool state, CancellationToken ct)
+            => await _db.Users.AllAsync(x => ids.Contains(x.Id) && x.Active == state, ct);
 
         public async Task<OperationResult<string>> GetUserEmailById(int id, CancellationToken ct)
             => OperationResult<string>.Success(nameof(GetUserEmailById), await _db.Users.Include(x => x.Role)

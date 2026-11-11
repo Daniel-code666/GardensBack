@@ -72,16 +72,16 @@ namespace GardensBack.Controllers
         /// <summary>
         /// Desactiva un usuario por su identificador.
         /// </summary>
-        /// <param name="id">Identificador del usuario.</param>
+        /// <param name="selectedIds">Identificador del/los usuarios.</param>
         /// <param name="ct">Token de cancelación de la solicitud.</param>
         /// <returns>El resultado de la desactivación.</returns>
-        [HttpDelete("DeleteUser/{id:int}")]
-        public async Task<ActionResult<OperationResult<int>>> DeleteUser([FromRoute] int id, CancellationToken ct)
+        [HttpDelete("DeleteUsers")]
+        public async Task<ActionResult<OperationResult<int>>> DeleteUser([FromBody] UserDeleteRequest selectedIds, CancellationToken ct)
         {
             if (!TryGetAuthenticatedUserId(out int userId))
                 return Unauthorized();
 
-            return Ok(await _userService.DeleteUser(id, userId, User.IsInRole(BaseRoles.Admin), ct));
+            return Ok(await _userService.DeleteUser(selectedIds, userId, User.IsInRole(BaseRoles.Admin), ct));
         }
 
         /// <summary>
