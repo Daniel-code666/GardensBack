@@ -13,13 +13,14 @@ namespace GardensBack.Application.Users.Dtos
         [Required, EmailAddress, StringLength(254)]
         public string Email { get; set; } = string.Empty;
         
-        [Required]
-        public required string Password { get; set; }
+        [StringLength(128)]
+        public string Password { get; set; } = string.Empty;
 
         [Required]
         public required int RoleId { get; set; }
 
         public string RoleName { get; set; } = string.Empty;
+        public bool? Active { get; set; }
 
         public void Validate()
             => ValidationUtilities.ValidateObject(this);

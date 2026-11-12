@@ -10,6 +10,7 @@ namespace GardensBack.Application.Abstractions
         Task<OperationResult<User>> CreateUser(User user, CancellationToken ct);
         Task<OperationResult<User>> CreateUserMiddleware(User user, CancellationToken ct);
         Task<OperationResult<int[]>> DeleteUser(int[] ids, CancellationToken ct);
+        Task<OperationResult<bool>> ReactivateUsers(int[] ids, CancellationToken ct);
         Task<OperationResult<User>> GetUserById(int id, CancellationToken ct);
         Task<bool> CheckUsersExists(int[] ids, bool state, CancellationToken ct);
         Task<OperationResult<string>> GetUserEmailById(int id, CancellationToken ct);

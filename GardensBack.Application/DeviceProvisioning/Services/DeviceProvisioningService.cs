@@ -43,6 +43,38 @@ namespace GardensBack.Application.DeviceProvisioning.Services
         private readonly IDeviceCommandKeyProtector _commandKeyProtector = commandKeyProtector;
         private readonly RabbitMqOptions _rabbitMqOptions = rabbitMqOptions.Value;
 
+        public async Task FactoryReset(int userId, FactoryResetDeviceRequest request, CancellationToken ct)
+        {
+            request.Validate();
+
+            if (userId <= 0)
+                throw new UnathorizedException("La identidad del usuario no es válida.");
+
+            IReadOnlyList<MicrocontrollerDevice> identityMatches =
+                await _deviceRepository.FindIdentityMatches(
+                    request.DeviceId,
+                    request.HardwareId,
+                    request.MqttClientId,
+                    ct);
+
+            if (identityMatches.Count > 1)
+                throw new ValidationException("Los identificadores pertenecen a dispositivos diferentes.");
+
+            MicrocontrollerDevice device = identityMatches.SingleOrDefault()
+                ?? throw new NotFoundException("El dispositivo no fue encontrado.");
+
+            bool exactIdentity =
+                device.DeviceId == request.DeviceId &&
+                device.HardwareId == request.HardwareId &&
+                device.MqttClientId == request.MqttClientId;
+
+            if (!exactIdentity || device.UserId != userId)
+                throw new NotFoundException("El dispositivo no fue encontrado.");
+
+            _deviceRepository.RemoveDevice(device);
+            await _deviceRepository.SaveChanges(ct);
+        }
+
         public async Task<StartDeviceProvisioningResponse> StartProvisioning(int userId, StartDeviceProvisioningRequest request, CancellationToken ct)
         {
             request.Validate();

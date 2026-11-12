@@ -67,6 +67,11 @@ namespace GardensBack.Infrastructure.Persistance.Repositories
                 .SingleOrDefaultAsync(x => x.ProvisioningTokenHash == tokenHash, ct);
         }
 
+        public void RemoveDevice(MicrocontrollerDevice device)
+        {
+            _db.MicrocontrollerDevices.Remove(device);
+        }
+
         public Task<int> SaveChanges(CancellationToken ct)
         {
             return _db.SaveChangesAsync(ct);

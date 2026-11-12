@@ -18,6 +18,8 @@ namespace GardensBack.Application.DeviceProvisioning.Abstractions
 
         Task AddMqttCredential(MqttCredential credential, CancellationToken ct);
 
+        void RemoveDevice(MicrocontrollerDevice device);
+
         Task<int> SaveChanges(CancellationToken ct);
     }
 }

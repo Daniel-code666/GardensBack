@@ -39,6 +39,22 @@ namespace GardensBack.Controllers
         }
 
         /// <summary>
+        /// Elimina el registro del microcontrolador y sus datos dependientes para permitir
+        /// que el propietario lo aprovisione nuevamente después del reset local de NVS.
+        /// </summary>
+        /// <param name="request">Identidad física reportada por el microcontrolador conectado.</param>
+        /// <param name="ct">Token de cancelación de la solicitud.</param>
+        [HttpPost("factory-reset")]
+        public async Task<IActionResult> FactoryReset([FromBody] FactoryResetDeviceRequest request, CancellationToken ct)
+        {
+            if (!int.TryParse(User.FindFirstValue(JwtRegisteredClaimNames.Sub), out int userId))
+                return Unauthorized();
+
+            await _deviceService.FactoryReset(userId, request, ct);
+            return NoContent();
+        }
+
+        /// <summary>
         /// Registra el claim para el broker
         /// </summary>
         /// <param name="request"></param>

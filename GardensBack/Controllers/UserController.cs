@@ -85,6 +85,21 @@ namespace GardensBack.Controllers
         }
 
         /// <summary>
+        /// Reactiva los usuarios indicados por su id
+        /// </summary>
+        /// <param name="selectedIds"></param>
+        /// <param name="ct"></param>
+        /// <returns></returns>
+        [HttpPost("ReactivateUsers")]
+        public async Task<ActionResult<OperationResult<bool>>> ReativateUsers([FromBody] UserDeleteRequest selectedIds, CancellationToken ct)
+        {
+            if (!TryGetAuthenticatedUserId(out int userId))
+                return Unauthorized();
+
+            return Ok(await _userService.ReactivateUser(selectedIds, userId, User.IsInRole(BaseRoles.Admin), ct));
+        }
+
+        /// <summary>
         /// Obtiene un usuario activo por su identificador.
         /// </summary>
         /// <param name="id">Identificador del usuario.</param>

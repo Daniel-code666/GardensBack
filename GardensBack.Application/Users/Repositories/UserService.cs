@@ -19,6 +19,7 @@ namespace GardensBack.Application.Users.Repositories
         public async Task<OperationResult<UserRegisterRequest>> CreateUser(UserRegisterRequest user, CancellationToken ct)
         {
             ValidateRequest(user);
+            ValidatePasswordRequired(user.Password);
 
             Role role = await GetRoleById(user.RoleId, ct);
             User userToCreate = _mapper.Map<UserRegisterRequest, User>(user);
@@ -56,6 +57,7 @@ namespace GardensBack.Application.Users.Repositories
         public async Task<OperationResult<UserRegisterRequest>> CreateUserMiddleware(UserRegisterRequest user, CancellationToken ct)
         {
             ValidateRequest(user);
+            ValidatePasswordRequired(user.Password);
 
             Role role = await GetRoleById(user.RoleId, ct);
             User userToCreate = _mapper.Map<UserRegisterRequest, User>(user);
@@ -115,7 +117,8 @@ namespace GardensBack.Application.Users.Repositories
                 userToUpdate.RoleId = role.Id;
             }
 
-            userToUpdate.PasswordHash = PasswordUtility.Hash(userToUpdate, user.Password);
+            if (!string.IsNullOrWhiteSpace(user.Password))
+                userToUpdate.PasswordHash = PasswordUtility.Hash(userToUpdate, user.Password);
 
             if (await _userRepository.SaveChanges(ct))
             {
@@ -137,6 +140,18 @@ namespace GardensBack.Application.Users.Repositories
             if (await _userRepository.CheckUsersExists(selectedIds.SelectedIds, true, ct))
             {
                 return await _userRepository.DeleteUser(selectedIds.SelectedIds, ct);
+            }
+
+            throw new NotFoundException("Usuarios no encontrados");
+        }
+
+        public async Task<OperationResult<bool>> ReactivateUser(UserDeleteRequest selectedIds, int requestedByUserId, bool isAdmin, CancellationToken ct)
+        {
+            ValidateUserAccess(selectedIds.SelectedIds, requestedByUserId, isAdmin);
+
+            if (await _userRepository.CheckUsersExists(selectedIds.SelectedIds, false, ct))
+            {
+                return await _userRepository.ReactivateUsers(selectedIds.SelectedIds, ct);
             }
 
             throw new NotFoundException("Usuarios no encontrados");
@@ -210,6 +225,12 @@ namespace GardensBack.Application.Users.Repositories
             if (request is null) throw new ValidationException("Body required");
 
             request.Validate();
+        }
+
+        private static void ValidatePasswordRequired(string password)
+        {
+            if (string.IsNullOrWhiteSpace(password))
+                throw new ValidationException("Password required");
         }
 
         private static void ValidateUserAccess(int[] targetUserIds, int requestedByUserId, bool isAdmin)

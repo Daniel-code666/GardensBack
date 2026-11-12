@@ -44,8 +44,10 @@ namespace GardensBack.Infrastructure.Persistance.Repositories
 
         public async Task<OperationResult<IEnumerable<User>>> GetAllUsers(int? roleId, string? roleName, CancellationToken ct)
         {
-            var result = await _db.Users.Include(x => x.Role)
-                .Where(x => (!roleId.HasValue || x.RoleId == roleId) && (string.IsNullOrEmpty(roleName) || x.Role.Name == roleName)).ToListAsync(ct);
+            var result = await _db.Users
+                .Include(x => x.Role)
+                .Where(x => (!roleId.HasValue || x.RoleId == roleId) && (string.IsNullOrEmpty(roleName) || x.Role.Name == roleName))
+                .OrderBy(x => x.Id).ToListAsync(ct);
 
             return OperationResult<IEnumerable<User>>.Success(nameof(GetAllUsers), result);
         }
@@ -56,8 +58,17 @@ namespace GardensBack.Infrastructure.Persistance.Repositories
         public async Task<OperationResult<User>> GetUserById(int id, CancellationToken ct)
             => OperationResult<User>.Success(nameof(GetUserById), await _db.Users.Include(x => x.Role).SingleOrDefaultAsync(x => x.Id == id && x.Active, ct));
 
+        public async Task<OperationResult<bool>> ReactivateUsers(int[] ids, CancellationToken ct)
+            => OperationResult<bool>.Success(nameof(ReactivateUsers), await _db.Users.Where(x => ids.Contains(x.Id) && !x.Active).ExecuteUpdateAsync(s => s.SetProperty(x => x.Active, true), ct) > 0);
+
         public async Task<bool> CheckUsersExists(int[] ids, bool state, CancellationToken ct)
-            => await _db.Users.AllAsync(x => ids.Contains(x.Id) && x.Active == state, ct);
+        {
+            var distinctIds = ids.Distinct().ToArray();
+
+            var count = await _db.Users.CountAsync(x => distinctIds.Contains(x.Id) && x.Active == state, ct);
+
+            return count == distinctIds.Length;
+        }
 
         public async Task<OperationResult<string>> GetUserEmailById(int id, CancellationToken ct)
             => OperationResult<string>.Success(nameof(GetUserEmailById), await _db.Users.Include(x => x.Role)

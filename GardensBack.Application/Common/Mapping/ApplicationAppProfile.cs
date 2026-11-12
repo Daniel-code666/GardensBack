@@ -25,11 +25,13 @@ namespace GardensBack.Application.Common.Mapping
         {
             CreateMap<UserRegisterRequest, User>()
                 .ForMember(x => x.Id, o => o.Ignore())
-                .ForMember(x => x.PasswordHash, o => o.MapFrom(x => x.Password))
+                .ForMember(x => x.PasswordHash, o => o.Ignore())
+                .ForMember(x => x.Active, o => o.Ignore())
                 .ReverseMap()
                 .ForMember(x => x.Id, o => o.MapFrom(x => x.Id))
                 .ForMember(x => x.Password, o => o.Ignore())
-                .ForMember(x => x.RoleName, o => o.MapFrom(x => x.Role.Name));
+                .ForMember(x => x.RoleName, o => o.MapFrom(x => x.Role.Name))
+                .ForMember(x => x.Active, o => o.MapFrom(x => x.Active));
 
             CreateMap<InitialUserRegisterRequest, User>()
                 .ForMember(x => x.PasswordHash, o => o.MapFrom(x => x.Password))
