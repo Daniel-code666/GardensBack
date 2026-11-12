@@ -132,14 +132,14 @@ namespace GardensBack.Application.DeviceInventory.Repositories
             return _mapper.Map<IReadOnlyList<MicroControllerDeviceDto>>(foundUser.MicrocontrollerDevices);
         }
 
-        public async Task<MicroControllerDeviceDto> GetMicroControllerDeviceById(int id, int requestedByUserId, CancellationToken ct)
+        public async Task<MicrocontrollerWDevicesDto> GetMicroControllerDeviceById(int id, int requestedByUserId, CancellationToken ct)
         {
             MicrocontrollerDevice? foundMicrocontroller = await _deviceRepository.GetMicroControllerDeviceById(id, ct) 
                 ?? throw new NotFoundException("Microcontrolador no encontrado");
 
             ValidateDeviceOwnership(foundMicrocontroller, requestedByUserId);
 
-            return _mapper.Map<MicroControllerDeviceDto>(foundMicrocontroller);
+            return _mapper.Map<MicrocontrollerWDevicesDto>(foundMicrocontroller);
         }
 
         public async Task<IReadOnlyList<DeviceTelemetryReadingDto>> GetTelemetryByDeviceId(DeviceTelemetryRequest request, int userId, CancellationToken ct)

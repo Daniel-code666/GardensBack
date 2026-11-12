@@ -34,7 +34,7 @@ namespace GardensBack.Infrastructure.Persistance.Repositories
             => await _db.MicrocontrollerDevices.AsNoTracking().OrderBy(x => x.Id).Where(x => ids.Contains(x.Id)).ToListAsync(ct);
 
         public async Task<MicrocontrollerDevice?> GetMicroControllerDeviceById(int id, CancellationToken ct)
-            => await _db.MicrocontrollerDevices.AsNoTracking().Include(x => x.Devices).Where(x => x.Id == id).SingleOrDefaultAsync(ct);
+            => await _db.MicrocontrollerDevices.AsNoTracking().Include(x => x.User).Include(x => x.Devices).Where(x => x.Id == id).SingleOrDefaultAsync(ct);
 
         public async Task<IReadOnlyList<DeviceTelemetry>> GetTelemetryByDeviceId(int id, int itemPerRequest, CancellationToken ct)
             => await _db.DeviceTelemetries.AsNoTracking().OrderByDescending(t => t.CreationDate).Take(itemPerRequest).Where(x => x.DeviceId == id).ToListAsync(ct);

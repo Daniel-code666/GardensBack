@@ -208,6 +208,8 @@ namespace GardensBack.Application.Common.Mapping
 
             CreateMap<DeviceTelemetryDeviceDto, DeviceTelemetry>().ReverseMap();
 
+            CreateMap<MicrocontrollerWDevicesDto, MicrocontrollerDevice>().ReverseMap();
+
             CreateMap<DeviceTelemetry, DeviceTelemetryReadingDto>()
                 .ForMember(
                     destination => destination.RecordedAtUtc,
