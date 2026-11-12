@@ -12,6 +12,9 @@ namespace GardensBack.Application.DeviceInventory.Abstractions
         Task<DeviceInventoryGeneralDto?> GetDeviceById(int deviceId, int requestedByUserId, CancellationToken ct);
         Task<DeviceInventoryGeneralDto?> GetDeviceByLocalId(GetDeviceByLocalIdDto request, int requestedByUserId, CancellationToken ct);
         Task<IReadOnlyCollection<DeviceInventoryGeneralDto>> GetAllDevicesByMicrocontrollerId(DeviceInventoryFilters request, int requestedByUserId, CancellationToken ct);
+        Task<IReadOnlyList<MicroControllerDeviceDto>> GetAllMicrocontrollerDevicesAssociatedToUser(int userId, CancellationToken ct);
+        Task<MicroControllerDeviceDto> GetMicroControllerDeviceById(int id, int requestedByUserId, CancellationToken ct);
+        Task<IReadOnlyList<DeviceTelemetryReadingDto>> GetTelemetryByDeviceId(DeviceTelemetryRequest request, int userId, CancellationToken ct);
         Task ProcessTelemetry(string microcontrollerDeviceId,DeviceTelemetryMessage telemetry, CancellationToken ct);
         Task<IEnumerable<DeviceTelemetryDto>> GetTelemetryForDevices(GetTelemetryForDevicesDto devicesDto, int requestedByUserId, CancellationToken ct);
         Task<DeviceCommandExecutionResponseDto> CreateDeviceCommand(DeviceCommandRequestDto request, int requestedByUserId, bool waitForResponse,CancellationToken ct);

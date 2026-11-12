@@ -20,8 +20,10 @@ namespace GardensBack.Application.DeviceInventory.Repositories
         IDeviceCommandKeyProtector commandKeyProtector,
         ICommandAuthenticationService<DeviceActionMessage> authenticationService,
         IDeviceCommandResponseWaiter responseWaiter,
+        IUserRepository userRepository,
         IMapper mapper) : IDeviceInventoryService
     {
+        private readonly IUserRepository _userRepository = userRepository;
         private readonly IDeviceInventoryRepository _deviceRepository = deviceRepository;
         private readonly IDeviceFirmwareUpdateRepository _firmwareUpdateRepository = firmwareUpdateRepository;
         private readonly IMapper _mapper = mapper;
@@ -108,10 +110,7 @@ namespace GardensBack.Application.DeviceInventory.Repositories
             return true;
         }
 
-        public async Task<IReadOnlyCollection<DeviceInventoryGeneralDto>> GetAllDevicesByMicrocontrollerId(
-            DeviceInventoryFilters request,
-            int requestedByUserId,
-            CancellationToken ct)
+        public async Task<IReadOnlyCollection<DeviceInventoryGeneralDto>> GetAllDevicesByMicrocontrollerId(DeviceInventoryFilters request, int requestedByUserId, CancellationToken ct)
         {
             ValidateRequestedByUserId(requestedByUserId);
 
@@ -124,6 +123,31 @@ namespace GardensBack.Application.DeviceInventory.Repositories
             ValidateDeviceOwnership(foundMicrocontroller, requestedByUserId);
 
             return _mapper.Map<IReadOnlyCollection<DeviceInventoryGeneralDto>>(await _deviceRepository.GetAllDevicesByMicrocontrollerId(request, ct));
+        }
+
+        public async Task<IReadOnlyList<MicroControllerDeviceDto>> GetAllMicrocontrollerDevicesAssociatedToUser(int userId, CancellationToken ct)
+        {
+            User foundUser = await _userRepository.GetUserWithMicroDevices(userId, true, ct) ?? throw new NotFoundException("Usuario no encontrado");
+
+            return _mapper.Map<IReadOnlyList<MicroControllerDeviceDto>>(foundUser.MicrocontrollerDevices);
+        }
+
+        public async Task<MicroControllerDeviceDto> GetMicroControllerDeviceById(int id, int requestedByUserId, CancellationToken ct)
+        {
+            MicrocontrollerDevice? foundMicrocontroller = await _deviceRepository.GetMicroControllerDeviceById(id, ct) 
+                ?? throw new NotFoundException("Microcontrolador no encontrado");
+
+            ValidateDeviceOwnership(foundMicrocontroller, requestedByUserId);
+
+            return _mapper.Map<MicroControllerDeviceDto>(foundMicrocontroller);
+        }
+
+        public async Task<IReadOnlyList<DeviceTelemetryReadingDto>> GetTelemetryByDeviceId(DeviceTelemetryRequest request, int userId, CancellationToken ct)
+        {
+            if (!await _deviceRepository.CheckMicroCtrlDeviceUserOwnership(request.DeviceId, request.MicrocontrollerId, userId, ct))
+                throw new ValidationException("Los datos de pertenencia del usuario, microcontrolador y dispositivo del microcontrolador no coinciden");
+
+            return _mapper.Map<IReadOnlyList<DeviceTelemetryReadingDto>>(await _deviceRepository.GetTelemetryByDeviceId(request.DeviceId, request.ItemPerRequest, ct));
         }
 
         public async Task<DeviceInventoryGeneralDto?> GetDeviceById(int deviceId, int requestedByUserId, CancellationToken ct)

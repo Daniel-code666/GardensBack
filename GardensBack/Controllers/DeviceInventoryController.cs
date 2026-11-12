@@ -161,6 +161,50 @@ namespace GardensBack.Controllers
             return Ok(await _service.GetDeviceCommandByRequest(deviceId, requestId, userId, ct));
         }
 
+        /// <summary>
+        /// Método que devuelve los microcontroladores asociados al usuario que hace la petición
+        /// </summary>
+        /// <param name="ct"></param>
+        /// <returns></returns>
+        [HttpGet("GetAllMicrocontrollerDevicesAssociatedToUser")]
+        public async Task<ActionResult<MicroControllerDeviceDto>> GetAllMicrocontrollerDevicesAssociatedToUser(CancellationToken ct)
+        {
+            if (!TryGetAuthenticatedUserId(out int userId) && userId > 0)
+                return Unauthorized();
+
+            return Ok(await _service.GetAllMicrocontrollerDevicesAssociatedToUser(userId, ct));
+        }
+
+        /// <summary>
+        /// Devuelve el microcontrolador por su id
+        /// </summary>
+        /// <param name="id"></param>
+        /// <param name="ct"></param>
+        /// <returns></returns>
+        [HttpGet("GetMicroControllerDeviceById/{id}")]
+        public async Task<ActionResult<MicroControllerDeviceDto>> GetMicroControllerDeviceById(int id, CancellationToken ct)
+        {
+            if (!TryGetAuthenticatedUserId(out int userId) && userId > 0)
+                return Unauthorized();
+
+            return Ok(await _service.GetMicroControllerDeviceById(id, userId, ct));
+        }
+
+        /// <summary>
+        /// Devuelve la telemetría de un sensor según su id
+        /// </summary>
+        /// <param name="request"></param>
+        /// <param name="ct"></param>
+        /// <returns></returns>
+        [HttpPost("GetTelemetryByDeviceId")]
+        public async Task<ActionResult<IReadOnlyList<DeviceTelemetryReadingDto>>> GetTelemetryByDeviceId([FromBody] DeviceTelemetryRequest request, CancellationToken ct)
+        {
+            if (!TryGetAuthenticatedUserId(out int userId) && userId > 0)
+                return Unauthorized();
+
+            return Ok(await _service.GetTelemetryByDeviceId(request, userId, ct));
+        }
+
         private bool TryGetAuthenticatedUserId(out int userId)
             => int.TryParse(User.FindFirstValue(JwtRegisteredClaimNames.Sub), out userId);
     }

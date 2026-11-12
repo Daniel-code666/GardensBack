@@ -10,6 +10,9 @@ namespace GardensBack.Application.Abstractions
         Task<MicrocontrollerDevice?> FindById(int microCtrlId, bool includeDevices, CancellationToken ct);
         Task<Device> AddDevice(Device device, CancellationToken ct);
         Task<IReadOnlyList<Device>> GetAllDevicesByMicrocontrollerId(DeviceInventoryFilters request, CancellationToken ct);
+        Task<IReadOnlyList<MicrocontrollerDevice>> GetMicroControllerDeviceByIds(int[] ids, CancellationToken ct);
+        Task<MicrocontrollerDevice?> GetMicroControllerDeviceById(int id, CancellationToken ct);
+        Task<IReadOnlyList<DeviceTelemetry>> GetTelemetryByDeviceId(int id, int itemPerRequest, CancellationToken ct);
         Task<Device?> GetDeviceById(int deviceId, CancellationToken ct);
         Task<IEnumerable<Device>> GetDevicesByIds(int[] deviceIds, CancellationToken ct);
         Task<Device?> GetDeviceByLocalId(GetDeviceByLocalIdDto request, CancellationToken ct);
@@ -23,6 +26,7 @@ namespace GardensBack.Application.Abstractions
         Task<int> MarkCommandPublished(int commandId, DateTime publishedAt, CancellationToken ct);
         Task ReloadCommand(DeviceCommand command, CancellationToken ct);
         Task<int> ExpireCommands(DateTime utcNow, CancellationToken ct);
+        Task<bool> CheckMicroCtrlDeviceUserOwnership(int deviceId, int microControllerId, int userId, CancellationToken ct);
         Task<int> SaveChanges(CancellationToken ct);
     }
 }

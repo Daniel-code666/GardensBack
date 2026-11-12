@@ -30,6 +30,15 @@ namespace GardensBack.Infrastructure.Persistance.Repositories
                 .Where(x => x.Active == request.Active && x.Available == request.Avaliable
                 && x.MicroCtrlDeviceId == request.SelectedMicrocontrollerId && (request.SelectedDeviceIds == null || request.SelectedDeviceIds.Contains(x.Id))).ToListAsync(ct);
 
+        public async Task<IReadOnlyList<MicrocontrollerDevice>> GetMicroControllerDeviceByIds(int[] ids, CancellationToken ct)
+            => await _db.MicrocontrollerDevices.AsNoTracking().OrderBy(x => x.Id).Where(x => ids.Contains(x.Id)).ToListAsync(ct);
+
+        public async Task<MicrocontrollerDevice?> GetMicroControllerDeviceById(int id, CancellationToken ct)
+            => await _db.MicrocontrollerDevices.AsNoTracking().Include(x => x.Devices).Where(x => x.Id == id).SingleOrDefaultAsync(ct);
+
+        public async Task<IReadOnlyList<DeviceTelemetry>> GetTelemetryByDeviceId(int id, int itemPerRequest, CancellationToken ct)
+            => await _db.DeviceTelemetries.AsNoTracking().OrderByDescending(t => t.CreationDate).Take(itemPerRequest).Where(x => x.DeviceId == id).ToListAsync(ct);
+
         public async Task<Device?> GetDeviceById(int deviceId, CancellationToken ct)
             => await _db.Devices.Include(x => x.MicroCtrlDevice).SingleOrDefaultAsync(x => x.Id == deviceId, ct);
 
@@ -62,6 +71,9 @@ namespace GardensBack.Infrastructure.Persistance.Repositories
                 .Include(x => x.MicroCtrlDevice)
                 .Include(x => x.DeviceTelemetries.OrderByDescending(t => t.CreationDate).Take(itemPerRequest))
                 .Where(x => devicesId.Contains(x.Id)).ToListAsync(ct);
+
+        public async Task<bool> CheckMicroCtrlDeviceUserOwnership(int deviceId, int microControllerId, int userId, CancellationToken ct)
+            => await _db.MicrocontrollerDevices.AnyAsync(x => x.Id == microControllerId && x.UserId == userId && x.Devices.Any(d => d.Id == deviceId), ct);
 
         public async Task<IEnumerable<DeviceTelemetry>> GetTelemetryForDevices(int[] devicesIds, int itemPerRequest, CancellationToken ct)
             => await _db.DeviceTelemetries.AsNoTracking().Where(x => devicesIds.Contains(x.DeviceId)).OrderByDescending(x => x.CreationDate).Take(itemPerRequest).ToListAsync(ct);

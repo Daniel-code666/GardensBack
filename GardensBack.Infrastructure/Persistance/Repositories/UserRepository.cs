@@ -58,6 +58,16 @@ namespace GardensBack.Infrastructure.Persistance.Repositories
         public async Task<OperationResult<User>> GetUserById(int id, CancellationToken ct)
             => OperationResult<User>.Success(nameof(GetUserById), await _db.Users.Include(x => x.Role).SingleOrDefaultAsync(x => x.Id == id && x.Active, ct));
 
+        public async Task<User?> GetUserWithMicroDevices(int id, bool includeMicroController, CancellationToken ct)
+        {
+            var query = _db.Users.AsQueryable();
+
+            if (includeMicroController)
+                query = query.Include(x => x.MicrocontrollerDevices).ThenInclude(m => m.Devices);
+
+            return await query.SingleOrDefaultAsync(x => x.Id == id, ct);
+        }
+
         public async Task<OperationResult<bool>> ReactivateUsers(int[] ids, CancellationToken ct)
             => OperationResult<bool>.Success(nameof(ReactivateUsers), await _db.Users.Where(x => ids.Contains(x.Id) && !x.Active).ExecuteUpdateAsync(s => s.SetProperty(x => x.Active, true), ct) > 0);
 

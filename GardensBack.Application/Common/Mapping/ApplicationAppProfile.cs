@@ -206,6 +206,8 @@ namespace GardensBack.Application.Common.Mapping
 
             CreateMap<Device, DeviceTelemetryDeviceDto>();
 
+            CreateMap<DeviceTelemetryDeviceDto, DeviceTelemetry>().ReverseMap();
+
             CreateMap<DeviceTelemetry, DeviceTelemetryReadingDto>()
                 .ForMember(
                     destination => destination.RecordedAtUtc,
@@ -233,6 +235,14 @@ namespace GardensBack.Application.Common.Mapping
                 .ForMember(
                     destination => destination.DeviceResponse,
                     options => options.MapFrom(source => DeserializeDeviceResponse(source.ResponsePayload)));
+
+            CreateMap<MicrocontrollerDevice, MicroControllerDeviceDto>()
+                .ForMember(d => d.PublicId, o => o.MapFrom(s => s.PublicId.ToString()))
+                .ForMember(d => d.OwnerId, o => o.MapFrom(s => s.UserId))
+                .ForMember(d => d.OwnerName, o => o.MapFrom(s => s.User.Name))
+                .ForMember(d => d.OwnerEmail, o => o.MapFrom(s => s.User.Email))
+                .ForMember(d => d.ExistingDevicesQty, o => o.MapFrom(s => s.Devices.Count))
+                .ForMember(d => d.Devices, o => o.MapFrom(s => s.Devices.Select(d => d.Id).ToArray()));
         }
 
         private static DeviceActionResultMessage? DeserializeDeviceResponse(string? responsePayload)
