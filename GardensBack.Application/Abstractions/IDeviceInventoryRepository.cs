@@ -12,13 +12,13 @@ namespace GardensBack.Application.Abstractions
         Task<IReadOnlyList<Device>> GetAllDevicesByMicrocontrollerId(DeviceInventoryFilters request, CancellationToken ct);
         Task<IReadOnlyList<MicrocontrollerDevice>> GetMicroControllerDeviceByIds(int[] ids, CancellationToken ct);
         Task<MicrocontrollerDevice?> GetMicroControllerDeviceById(int id, CancellationToken ct);
-        Task<IReadOnlyList<DeviceTelemetry>> GetTelemetryByDeviceId(int id, int itemPerRequest, CancellationToken ct);
+        Task<IReadOnlyList<DeviceTelemetry>> GetTelemetryByDeviceId(int id, int itemPerRequest, DateTime? startDateUtc, DateTime? endDateUtc, CancellationToken ct);
         Task<Device?> GetDeviceById(int deviceId, CancellationToken ct);
         Task<IEnumerable<Device>> GetDevicesByIds(int[] deviceIds, CancellationToken ct);
         Task<Device?> GetDeviceByLocalId(GetDeviceByLocalIdDto request, CancellationToken ct);
         Task AddTelemetry(DeviceTelemetry telemetry, CancellationToken ct);
-        Task<IEnumerable<Device>> GetDevicesWithTelemetry(int[] devicesIds, int itemPerRequest, CancellationToken ct);
-        Task<IEnumerable<DeviceTelemetry>> GetTelemetryForDevices(int[] devicesIds, int itemPerRequest, CancellationToken ct);
+        Task<IEnumerable<Device>> GetDevicesWithTelemetry(int[] devicesIds, int itemPerRequest, DateTime? startDateUtc, DateTime? endDateUtc, CancellationToken ct);
+        Task<IEnumerable<DeviceTelemetry>> GetTelemetryForDevices(int[] devicesIds, int itemPerRequest, DateTime? startDateUtc, DateTime? endDateUtc, CancellationToken ct);
         Task AddCommand(DeviceCommand command, CancellationToken ct);
         Task<DeviceCommand?> GetCommandById(int commandId, CancellationToken ct);
         Task<DeviceCommand?> GetCommandByRequest(string deviceId, string requestId, CancellationToken ct);

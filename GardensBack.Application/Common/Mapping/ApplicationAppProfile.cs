@@ -208,7 +208,12 @@ namespace GardensBack.Application.Common.Mapping
 
             CreateMap<DeviceTelemetryDeviceDto, DeviceTelemetry>().ReverseMap();
 
-            CreateMap<MicrocontrollerWDevicesDto, MicrocontrollerDevice>().ReverseMap();
+            CreateMap<MicrocontrollerWDevicesDto, MicrocontrollerDevice>()
+                .ReverseMap()
+                .ForMember(d => d.PublicId, o => o.MapFrom(s => s.PublicId.ToString()))
+                .ForMember(d => d.OwnerId, o => o.MapFrom(s => s.UserId))
+                .ForMember(d => d.OwnerName, o => o.MapFrom(s => s.User.Name))
+                .ForMember(d => d.OwnerEmail, o => o.MapFrom(s => s.User.Email));
 
             CreateMap<DeviceTelemetry, DeviceTelemetryReadingDto>()
                 .ForMember(

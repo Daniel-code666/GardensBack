@@ -114,8 +114,10 @@ namespace GardensBack.Application.DeviceInventory.Repositories
         {
             ValidateRequestedByUserId(requestedByUserId);
 
-            if (request.TelemtryPerRequest is < 1 or > 100)
-                throw new ValidationException("La cantidad de registros de telemetría debe estar entre 1 y 100.");
+            if (request.TelemtryPerRequest < 1)
+                throw new ValidationException("La cantidad de registros de telemetría debe ser mayor que cero.");
+
+            ValidateTelemetryDateRange(request.StartDateUtc, request.EndDateUtc);
 
             MicrocontrollerDevice foundMicrocontroller = await _deviceRepository.FindById(request.SelectedMicrocontrollerId, false, ct) 
                 ?? throw new NotFoundException("Microcontrolador no encontrado.");
@@ -144,10 +146,24 @@ namespace GardensBack.Application.DeviceInventory.Repositories
 
         public async Task<IReadOnlyList<DeviceTelemetryReadingDto>> GetTelemetryByDeviceId(DeviceTelemetryRequest request, int userId, CancellationToken ct)
         {
+            ValidateRequestedByUserId(userId);
+
+            if (request.ItemPerRequest < 1)
+                throw new ValidationException("La cantidad de registros de telemetría debe ser mayor que cero.");
+
+            (DateTime? startDateUtc, DateTime? endDateUtc) = ValidateTelemetryDateRange(
+                request.StartDateUtc,
+                request.EndDateUtc);
+
             if (!await _deviceRepository.CheckMicroCtrlDeviceUserOwnership(request.DeviceId, request.MicrocontrollerId, userId, ct))
                 throw new ValidationException("Los datos de pertenencia del usuario, microcontrolador y dispositivo del microcontrolador no coinciden");
 
-            return _mapper.Map<IReadOnlyList<DeviceTelemetryReadingDto>>(await _deviceRepository.GetTelemetryByDeviceId(request.DeviceId, request.ItemPerRequest, ct));
+            return _mapper.Map<IReadOnlyList<DeviceTelemetryReadingDto>>(await _deviceRepository.GetTelemetryByDeviceId(
+                request.DeviceId,
+                request.ItemPerRequest,
+                startDateUtc,
+                endDateUtc,
+                ct));
         }
 
         public async Task<DeviceInventoryGeneralDto?> GetDeviceById(int deviceId, int requestedByUserId, CancellationToken ct)
@@ -288,13 +304,19 @@ namespace GardensBack.Application.DeviceInventory.Repositories
                 devicesDto.DevicesIds.Any(id => id <= 0))
                 throw new ValidationException("Debe especificar al menos un dispositivo válido.");
 
-            if (devicesDto.ItemPerRequest is < 1 or > 100)
-                throw new ValidationException("La cantidad de registros de telemetría debe estar entre 1 y 100.");
+            if (devicesDto.ItemPerRequest < 1)
+                throw new ValidationException("La cantidad de registros de telemetría debe ser mayor que cero.");
+
+            (DateTime? startDateUtc, DateTime? endDateUtc) = ValidateTelemetryDateRange(
+                devicesDto.StartDateUtc,
+                devicesDto.EndDateUtc);
 
             int[] requestedDeviceIds = [.. devicesDto.DevicesIds.Distinct()];
             List<Device> foundDevices = [.. await _deviceRepository.GetDevicesWithTelemetry(
                 requestedDeviceIds,
                 devicesDto.ItemPerRequest,
+                startDateUtc,
+                endDateUtc,
                 ct)];
 
             if (foundDevices.Count != requestedDeviceIds.Length)
@@ -669,6 +691,16 @@ namespace GardensBack.Application.DeviceInventory.Repositories
         {
             if (microcontroller.UserId != requestedByUserId)
                 throw new ForbiddenException("El microcontrolador no pertenece al usuario autenticado.");
+        }
+
+        private static (DateTime? StartDateUtc, DateTime? EndDateUtc) ValidateTelemetryDateRange(
+            DateTimeOffset? startDateUtc,
+            DateTimeOffset? endDateUtc)
+        {
+            if (startDateUtc.HasValue && endDateUtc.HasValue && startDateUtc.Value > endDateUtc.Value)
+                throw new ValidationException("La fecha inicial de telemetría no puede ser posterior a la fecha final.");
+
+            return (startDateUtc?.UtcDateTime, endDateUtc?.UtcDateTime);
         }
 
         private static IReadOnlyCollection<DeviceActionParameter> BuildCommandParameters(

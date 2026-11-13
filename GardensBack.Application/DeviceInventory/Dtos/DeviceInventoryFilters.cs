@@ -11,7 +11,8 @@ namespace GardensBack.Application.DeviceInventory.Dtos
         public DeviceType DeviceType { get; set; }
         public MeasurementType MeasurementType { get; set; }
         public MeasurementUnit MeasurementUnit { get; set; }
-        [System.ComponentModel.DataAnnotations.Range(1, 100)]
         public int TelemtryPerRequest { get; set; } = 20;
+        public DateTimeOffset? StartDateUtc { get; set; }
+        public DateTimeOffset? EndDateUtc { get; set; }
     }
 }

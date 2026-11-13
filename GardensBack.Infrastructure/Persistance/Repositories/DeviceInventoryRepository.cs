@@ -26,9 +26,19 @@ namespace GardensBack.Infrastructure.Persistance.Repositories
         }
 
         public async Task<IReadOnlyList<Device>> GetAllDevicesByMicrocontrollerId(DeviceInventoryFilters request, CancellationToken ct)
-            => await _db.Devices.AsNoTracking().Include(x => x.DeviceTelemetries.OrderByDescending(x => x.CreationDate).Take(request.TelemtryPerRequest))
+        {
+            DateTime? startDateUtc = request.StartDateUtc?.UtcDateTime;
+            DateTime? endDateUtc = request.EndDateUtc?.UtcDateTime;
+
+            return await _db.Devices.AsNoTracking()
+                .Include(x => x.DeviceTelemetries
+                    .Where(t => (!startDateUtc.HasValue || t.CreationDate >= startDateUtc.Value) &&
+                                (!endDateUtc.HasValue || t.CreationDate <= endDateUtc.Value))
+                    .OrderByDescending(x => x.CreationDate)
+                    .Take(request.TelemtryPerRequest))
                 .Where(x => x.Active == request.Active && x.Available == request.Avaliable
                 && x.MicroCtrlDeviceId == request.SelectedMicrocontrollerId && (request.SelectedDeviceIds == null || request.SelectedDeviceIds.Contains(x.Id))).ToListAsync(ct);
+        }
 
         public async Task<IReadOnlyList<MicrocontrollerDevice>> GetMicroControllerDeviceByIds(int[] ids, CancellationToken ct)
             => await _db.MicrocontrollerDevices.AsNoTracking().OrderBy(x => x.Id).Where(x => ids.Contains(x.Id)).ToListAsync(ct);
@@ -36,8 +46,14 @@ namespace GardensBack.Infrastructure.Persistance.Repositories
         public async Task<MicrocontrollerDevice?> GetMicroControllerDeviceById(int id, CancellationToken ct)
             => await _db.MicrocontrollerDevices.AsNoTracking().Include(x => x.User).Include(x => x.Devices).Where(x => x.Id == id).SingleOrDefaultAsync(ct);
 
-        public async Task<IReadOnlyList<DeviceTelemetry>> GetTelemetryByDeviceId(int id, int itemPerRequest, CancellationToken ct)
-            => await _db.DeviceTelemetries.AsNoTracking().OrderByDescending(t => t.CreationDate).Take(itemPerRequest).Where(x => x.DeviceId == id).ToListAsync(ct);
+        public async Task<IReadOnlyList<DeviceTelemetry>> GetTelemetryByDeviceId(int id, int itemPerRequest, DateTime? startDateUtc, DateTime? endDateUtc, CancellationToken ct)
+            => await _db.DeviceTelemetries.AsNoTracking()
+                .Where(x => x.DeviceId == id &&
+                            (!startDateUtc.HasValue || x.CreationDate >= startDateUtc.Value) &&
+                            (!endDateUtc.HasValue || x.CreationDate <= endDateUtc.Value))
+                .OrderByDescending(t => t.CreationDate)
+                .Take(itemPerRequest)
+                .ToListAsync(ct);
 
         public async Task<Device?> GetDeviceById(int deviceId, CancellationToken ct)
             => await _db.Devices.Include(x => x.MicroCtrlDevice).SingleOrDefaultAsync(x => x.Id == deviceId, ct);
@@ -66,17 +82,27 @@ namespace GardensBack.Infrastructure.Persistance.Repositories
         public async Task AddTelemetry(DeviceTelemetry telemetry, CancellationToken ct)
             => await _db.DeviceTelemetries.AddAsync(telemetry, ct);
 
-        public async Task<IEnumerable<Device>> GetDevicesWithTelemetry(int[] devicesId, int itemPerRequest, CancellationToken ct)
+        public async Task<IEnumerable<Device>> GetDevicesWithTelemetry(int[] devicesId, int itemPerRequest, DateTime? startDateUtc, DateTime? endDateUtc, CancellationToken ct)
             => await _db.Devices.AsNoTracking()
                 .Include(x => x.MicroCtrlDevice)
-                .Include(x => x.DeviceTelemetries.OrderByDescending(t => t.CreationDate).Take(itemPerRequest))
+                .Include(x => x.DeviceTelemetries
+                    .Where(t => (!startDateUtc.HasValue || t.CreationDate >= startDateUtc.Value) &&
+                                (!endDateUtc.HasValue || t.CreationDate <= endDateUtc.Value))
+                    .OrderByDescending(t => t.CreationDate)
+                    .Take(itemPerRequest))
                 .Where(x => devicesId.Contains(x.Id)).ToListAsync(ct);
 
         public async Task<bool> CheckMicroCtrlDeviceUserOwnership(int deviceId, int microControllerId, int userId, CancellationToken ct)
             => await _db.MicrocontrollerDevices.AnyAsync(x => x.Id == microControllerId && x.UserId == userId && x.Devices.Any(d => d.Id == deviceId), ct);
 
-        public async Task<IEnumerable<DeviceTelemetry>> GetTelemetryForDevices(int[] devicesIds, int itemPerRequest, CancellationToken ct)
-            => await _db.DeviceTelemetries.AsNoTracking().Where(x => devicesIds.Contains(x.DeviceId)).OrderByDescending(x => x.CreationDate).Take(itemPerRequest).ToListAsync(ct);
+        public async Task<IEnumerable<DeviceTelemetry>> GetTelemetryForDevices(int[] devicesIds, int itemPerRequest, DateTime? startDateUtc, DateTime? endDateUtc, CancellationToken ct)
+            => await _db.DeviceTelemetries.AsNoTracking()
+                .Where(x => devicesIds.Contains(x.DeviceId) &&
+                            (!startDateUtc.HasValue || x.CreationDate >= startDateUtc.Value) &&
+                            (!endDateUtc.HasValue || x.CreationDate <= endDateUtc.Value))
+                .OrderByDescending(x => x.CreationDate)
+                .Take(itemPerRequest)
+                .ToListAsync(ct);
 
         public Task AddCommand(DeviceCommand command, CancellationToken ct)
             => _db.DeviceCommands.AddAsync(command, ct).AsTask();
