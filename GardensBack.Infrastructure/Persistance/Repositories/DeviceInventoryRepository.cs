@@ -95,6 +95,9 @@ namespace GardensBack.Infrastructure.Persistance.Repositories
         public async Task<bool> CheckMicroCtrlDeviceUserOwnership(int deviceId, int microControllerId, int userId, CancellationToken ct)
             => await _db.MicrocontrollerDevices.AnyAsync(x => x.Id == microControllerId && x.UserId == userId && x.Devices.Any(d => d.Id == deviceId), ct);
 
+        public async Task<IEnumerable<Device>> GetDevicesByTypeAndMicroCtrlId(int microControllerId, DeviceType deviceType, CancellationToken ct)
+            => await _db.Devices.Where(x => x.MicroCtrlDeviceId == microControllerId && x.DeviceType == deviceType).ToListAsync(ct);
+
         public async Task<IEnumerable<DeviceTelemetry>> GetTelemetryForDevices(int[] devicesIds, int itemPerRequest, DateTime? startDateUtc, DateTime? endDateUtc, CancellationToken ct)
             => await _db.DeviceTelemetries.AsNoTracking()
                 .Where(x => devicesIds.Contains(x.DeviceId) &&

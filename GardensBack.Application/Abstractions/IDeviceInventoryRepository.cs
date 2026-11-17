@@ -27,6 +27,7 @@ namespace GardensBack.Application.Abstractions
         Task ReloadCommand(DeviceCommand command, CancellationToken ct);
         Task<int> ExpireCommands(DateTime utcNow, CancellationToken ct);
         Task<bool> CheckMicroCtrlDeviceUserOwnership(int deviceId, int microControllerId, int userId, CancellationToken ct);
+        Task<IEnumerable<Device>> GetDevicesByTypeAndMicroCtrlId(int microControllerId, DeviceType deviceType, CancellationToken ct);
         Task<int> SaveChanges(CancellationToken ct);
     }
 }

@@ -1,5 +1,6 @@
 ﻿using GardensBack.Application.DeviceInventory.Abstractions;
 using GardensBack.Application.DeviceInventory.Dtos;
+using GardensBack.Domain.Enums;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.IdentityModel.Tokens.Jwt;
@@ -203,6 +204,23 @@ namespace GardensBack.Controllers
                 return Unauthorized();
 
             return Ok(await _service.GetTelemetryByDeviceId(request, userId, ct));
+        }
+
+        /// <summary>
+        /// Devuelve los dispositivos según su id del microcontrolador y el tipo
+        /// </summary>
+        /// <param name="microCtrlId"></param>
+        /// <param name="deviceType"></param>
+        /// <param name="ct"></param>
+        /// <returns></returns>
+        [HttpGet("GetDevicesByTypeAndMicroCtrlId/{microCtrlId}/{deviceType}")]
+        public async Task<ActionResult<IEnumerable<DeviceInventoryGeneralDto>>> GetDevicesByTypeAndMicroCtrlId([FromRoute] int microCtrlId, [FromRoute] DeviceType deviceType, 
+            CancellationToken ct)
+        {
+            if (!TryGetAuthenticatedUserId(out int userId) && userId > 0)
+                return Unauthorized();
+
+            return Ok(await _service.GetDevicesByTypeAndMicroCtrlId(microCtrlId, userId, deviceType, ct));
         }
 
         private bool TryGetAuthenticatedUserId(out int userId)

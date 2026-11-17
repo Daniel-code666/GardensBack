@@ -24,6 +24,7 @@ namespace GardensBack.Application.DeviceInventory.Dtos
         public bool Active { get; set; }
         public DateTime CreationDate { get; set; }
         public DateTime UpdateDate { get; set; }
+        public DateTime LastSeenAt { get; set; }
         public IReadOnlyCollection<DeviceTelemetryReadingDto> Telemetry { get; set; } = [];
 
         public void Validate()
