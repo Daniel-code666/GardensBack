@@ -21,6 +21,7 @@ namespace GardensBack.Application.DeviceInventory.Dtos
         public required DateTime CreationDate { get; set; }
         public required DateTime UpdateDate { get; set; }
         public required bool Active { get; set; }
-        public int[] Devices { get; set; } = [];
+        public MqttCredentialStatus? MqttCredentialStatus { get; set; }
+        public IReadOnlyCollection<DeviceReferenceDto> Devices { get; set; } = [];
     }
 }

@@ -62,6 +62,8 @@ namespace GardensBack.Infrastructure.Persistance.Repositories
         {
             var query = _db.Users.AsQueryable();
 
+            query = query.Include(x => x.MicrocontrollerDevices).ThenInclude(m => m.MqttCredential);
+
             if (includeMicroController)
                 query = query.Include(x => x.MicrocontrollerDevices).ThenInclude(m => m.Devices);
 

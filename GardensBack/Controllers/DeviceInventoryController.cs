@@ -167,7 +167,7 @@ namespace GardensBack.Controllers
         /// <param name="ct"></param>
         /// <returns></returns>
         [HttpGet("GetAllMicrocontrollerDevicesAssociatedToUser")]
-        public async Task<ActionResult<MicroControllerDeviceDto>> GetAllMicrocontrollerDevicesAssociatedToUser(CancellationToken ct)
+        public async Task<ActionResult<IReadOnlyList<MicroControllerDeviceDto>>> GetAllMicrocontrollerDevicesAssociatedToUser(CancellationToken ct)
         {
             if (!TryGetAuthenticatedUserId(out int userId) && userId > 0)
                 return Unauthorized();

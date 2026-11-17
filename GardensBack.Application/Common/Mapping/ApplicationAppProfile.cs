@@ -243,13 +243,16 @@ namespace GardensBack.Application.Common.Mapping
                     destination => destination.DeviceResponse,
                     options => options.MapFrom(source => DeserializeDeviceResponse(source.ResponsePayload)));
 
+            CreateMap<Device, DeviceReferenceDto>();
+
             CreateMap<MicrocontrollerDevice, MicroControllerDeviceDto>()
                 .ForMember(d => d.PublicId, o => o.MapFrom(s => s.PublicId.ToString()))
                 .ForMember(d => d.OwnerId, o => o.MapFrom(s => s.UserId))
                 .ForMember(d => d.OwnerName, o => o.MapFrom(s => s.User.Name))
                 .ForMember(d => d.OwnerEmail, o => o.MapFrom(s => s.User.Email))
                 .ForMember(d => d.ExistingDevicesQty, o => o.MapFrom(s => s.Devices.Count))
-                .ForMember(d => d.Devices, o => o.MapFrom(s => s.Devices.Select(d => d.Id).ToArray()));
+                .ForMember(d => d.MqttCredentialStatus, o => o.MapFrom(s => s.MqttCredential != null ? (MqttCredentialStatus?)s.MqttCredential.Status : null))
+                .ForMember(d => d.Devices, o => o.MapFrom(s => s.Devices));
         }
 
         private static DeviceActionResultMessage? DeserializeDeviceResponse(string? responsePayload)
