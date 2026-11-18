@@ -223,6 +223,21 @@ namespace GardensBack.Controllers
             return Ok(await _service.GetDevicesByTypeAndMicroCtrlId(microCtrlId, userId, deviceType, ct));
         }
 
+        /// <summary>
+        /// Devuelve los comandos según su microcontrolador y una cantidad
+        /// </summary>
+        /// <param name="request"></param>
+        /// <param name="ct"></param>
+        /// <returns></returns>
+        [HttpPost("GetCommands")]
+        public async Task<ActionResult<IEnumerable<DeviceCommandResponseDto>>> GetCommands([FromBody] DeviceCommandDashboardRequest request, CancellationToken ct)
+        {
+            if (!TryGetAuthenticatedUserId(out int userId) && userId > 0)
+                return Unauthorized();
+
+            return Ok(await _service.GetCommands(request, userId, ct));
+        }
+
         private bool TryGetAuthenticatedUserId(out int userId)
             => int.TryParse(User.FindFirstValue(JwtRegisteredClaimNames.Sub), out userId);
     }

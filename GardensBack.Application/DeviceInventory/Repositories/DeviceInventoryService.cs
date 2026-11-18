@@ -9,9 +9,10 @@ using GardensBack.Application.DeviceInventory.Dtos;
 using GardensBack.Application.FirmwareUpdates.Abstractions;
 using GardensBack.Domain.Entities;
 using GardensBack.Domain.Enums;
+using System.Security.Cryptography;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using System.Security.Cryptography;
+using static Microsoft.EntityFrameworkCore.DbLoggerCategory.Database;
 
 namespace GardensBack.Application.DeviceInventory.Repositories
 {
@@ -573,6 +574,16 @@ namespace GardensBack.Application.DeviceInventory.Repositories
 
             await _deviceRepository.SaveChanges(ct);
             _responseWaiter.Complete(response.RequestId, response);
+        }
+
+        public async Task<IEnumerable<DeviceCommandResponseDto>> GetCommands(DeviceCommandDashboardRequest request, int requestedByUserId, CancellationToken ct)
+        {
+            MicrocontrollerDevice foundMicrocontroller = await _deviceRepository.GetMicroControllerDeviceById(request.MicrocrontrollerId, ct)
+                ?? throw new NotFoundException("Microcontrolador no encontrado");
+
+            ValidateDeviceOwnership(foundMicrocontroller, requestedByUserId);
+
+            return _mapper.Map<IEnumerable<DeviceCommandResponseDto>>(await _deviceRepository.GetCommands(request.MicrocrontrollerId, request.ItemPerRequest, request.StatusList, ct));
         }
 
         public Task<int> ExpireDeviceCommands(DateTime utcNow, CancellationToken ct)

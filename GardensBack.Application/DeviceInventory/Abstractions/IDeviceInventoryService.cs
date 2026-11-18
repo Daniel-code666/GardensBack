@@ -24,6 +24,7 @@ namespace GardensBack.Application.DeviceInventory.Abstractions
         Task<DeviceCommandResponseDto> MarkDeviceCommandPublished(int commandId, CancellationToken ct);
         Task<DeviceCommandResponseDto> MarkDeviceCommandPublishFailed(int commandId, string errorCode, string errorMessage, CancellationToken ct);
         Task ProcessDeviceCommandResponse(string deviceId, DeviceActionResultMessage response, CancellationToken ct);
+        Task<IEnumerable<DeviceCommandResponseDto>> GetCommands(DeviceCommandDashboardRequest request, int requestedByUserId, CancellationToken ct);
         Task<IEnumerable<DeviceInventoryGeneralDto>> GetDevicesByTypeAndMicroCtrlId(int microControllerId, int requestedByUserId, DeviceType deviceType, CancellationToken ct);
         Task<int> ExpireDeviceCommands(DateTime utcNow, CancellationToken ct);
     }
