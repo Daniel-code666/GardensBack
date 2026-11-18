@@ -253,6 +253,11 @@ namespace GardensBack.Application.Common.Mapping
                 .ForMember(d => d.ExistingDevicesQty, o => o.MapFrom(s => s.Devices.Count))
                 .ForMember(d => d.MqttCredentialStatus, o => o.MapFrom(s => s.MqttCredential != null ? (MqttCredentialStatus?)s.MqttCredential.Status : null))
                 .ForMember(d => d.Devices, o => o.MapFrom(s => s.Devices));
+
+            CreateMap<DeviceTelemetry, TelemetryRealtimeReadingDto>()
+                .ForMember(
+                    destination => destination.RecordedAtUtc,
+                    options => options.MapFrom(source => source.CreationDate));
         }
 
         private static DeviceActionResultMessage? DeserializeDeviceResponse(string? responsePayload)

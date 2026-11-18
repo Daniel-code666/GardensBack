@@ -4,7 +4,6 @@ using GardensBack.Application.Common.Exceptions;
 using GardensBack.Application.Common.Messaging;
 using GardensBack.Application.Common.Security;
 using GardensBack.Application.DeviceInventory.Abstractions;
-using GardensBack.Application.DeviceInventory.Constants;
 using GardensBack.Application.DeviceInventory.Dtos;
 using GardensBack.Application.FirmwareUpdates.Abstractions;
 using GardensBack.Domain.Entities;
@@ -12,7 +11,6 @@ using GardensBack.Domain.Enums;
 using System.Security.Cryptography;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using static Microsoft.EntityFrameworkCore.DbLoggerCategory.Database;
 
 namespace GardensBack.Application.DeviceInventory.Repositories
 {
@@ -22,6 +20,7 @@ namespace GardensBack.Application.DeviceInventory.Repositories
         ICommandAuthenticationService<DeviceActionMessage> authenticationService,
         IDeviceCommandResponseWaiter responseWaiter,
         IUserRepository userRepository,
+        ITelemetryRealtimePublisher telemetryRealtimePublisher,
         IMapper mapper) : IDeviceInventoryService
     {
         private readonly IUserRepository _userRepository = userRepository;
@@ -35,7 +34,7 @@ namespace GardensBack.Application.DeviceInventory.Repositories
         private static readonly TimeSpan CommandExpiration = TimeSpan.FromSeconds(30);
         private static readonly TimeSpan ImmediateResponseTimeout = TimeSpan.FromSeconds(10);
         private static readonly JsonSerializerOptions CommandJsonOptions = CreateCommandJsonOptions();
-
+        private readonly ITelemetryRealtimePublisher _telemetryRealtimePublisher = telemetryRealtimePublisher;
         public async Task<DeviceInventoryGeneralDto> AddDevice(DeviceInventoryGeneralDto device, int requestedByUserId, CancellationToken ct)
         {
             device.Validate();
@@ -283,15 +282,20 @@ namespace GardensBack.Application.DeviceInventory.Repositories
 
         public async Task ProcessTelemetry(string microcontrollerDeviceId, DeviceTelemetryMessage telemetry, CancellationToken ct)
         {
-            bool telemetryAdded = await AddTelemetry(
-                microcontrollerDeviceId,
-                telemetry,
-                TelemetrySource.PeriodicTelemetry,
-                requestId: null,
-                ct);
+            IEnumerable<DeviceTelemetry> telemetryAdded = [.. await AddTelemetry(microcontrollerDeviceId,telemetry,TelemetrySource.PeriodicTelemetry,requestId: null,ct)];
 
-            if (telemetryAdded)
-                await _deviceRepository.SaveChanges(ct);
+            if (!telemetryAdded.Any())
+                return;
+
+            await _deviceRepository.SaveChanges(ct);
+
+            var realtimeTelemetry = new TelemetryRealtimeDto
+            {
+                MicrocontrollerDeviceId = microcontrollerDeviceId,
+                Readings = _mapper.Map<IReadOnlyCollection<TelemetryRealtimeReadingDto>>(telemetryAdded)
+            };
+
+            await _telemetryRealtimePublisher.PublishAsync(realtimeTelemetry, ct);
         }
 
         public async Task<IEnumerable<DeviceTelemetryDto>> GetTelemetryForDevices(GetTelemetryForDevicesDto devicesDto, int requestedByUserId, CancellationToken ct)
@@ -565,12 +569,7 @@ namespace GardensBack.Application.DeviceInventory.Repositories
             command.ErrorCode = response.Success ? null : "device_action_failed";
             command.ErrorMessage = response.Success ? null : "El dispositivo informó que no pudo ejecutar el comando.";
 
-            await AddTelemetry(
-                deviceId,
-                response.Telemetry,
-                TelemetrySource.CommandResponse,
-                response.RequestId,
-                ct);
+            await AddTelemetry(deviceId,response.Telemetry,TelemetrySource.CommandResponse,response.RequestId,ct);
 
             await _deviceRepository.SaveChanges(ct);
             _responseWaiter.Complete(response.RequestId, response);
@@ -594,22 +593,17 @@ namespace GardensBack.Application.DeviceInventory.Repositories
             return _deviceRepository.ExpireCommands(utcNow, ct);
         }
 
-        private async Task<bool> AddTelemetry(
-            string microcontrollerDeviceId,
-            DeviceTelemetryMessage telemetry,
-            TelemetrySource source,
-            string? requestId,
-            CancellationToken ct)
+        private async Task<IEnumerable<DeviceTelemetry>> AddTelemetry(string microcontrollerDeviceId,DeviceTelemetryMessage telemetry,TelemetrySource source,string? requestId,CancellationToken ct)
         {
             if (telemetry.SensorReadings.Count == 0 && telemetry.ActuatorReadings.Count == 0)
-                return false;
+                return [];
 
             MicrocontrollerDevice? microcontroller = await _deviceRepository.FindByDeviceId(microcontrollerDeviceId, true, ct);
 
             if (microcontroller is null || microcontroller.Devices.Count == 0)
-                return false;
+                return [];
 
-            bool telemetryAdded = false;
+            IEnumerable<DeviceTelemetry> telemetryAdded = [];
 
             foreach (SensorReadingMessage sensorTelemetry in telemetry.SensorReadings)
             {
@@ -629,7 +623,7 @@ namespace GardensBack.Application.DeviceInventory.Repositories
                 deviceTelemetry.RequestId = requestId;
 
                 await _deviceRepository.AddTelemetry(deviceTelemetry, ct);
-                telemetryAdded = true;
+                telemetryAdded = telemetryAdded.Append(deviceTelemetry);
             }
 
             foreach (ActuatorReadingMessage actuatorReading in telemetry.ActuatorReadings)
@@ -649,7 +643,7 @@ namespace GardensBack.Application.DeviceInventory.Repositories
                 deviceTelemetry.RequestId = requestId;
 
                 await _deviceRepository.AddTelemetry(deviceTelemetry, ct);
-                telemetryAdded = true;
+                telemetryAdded = telemetryAdded.Append(deviceTelemetry);
             }
 
             return telemetryAdded;

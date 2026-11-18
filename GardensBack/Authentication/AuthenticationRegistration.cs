@@ -60,6 +60,19 @@ namespace GardensBack.Authentication
 
                     options.Events = new JwtBearerEvents
                     {
+                        OnMessageReceived = context =>
+                        {
+                            string? accessToken = context.Request.Query["access_token"].FirstOrDefault();
+
+                            PathString requestPath = context.HttpContext.Request.Path;
+
+                            if (!string.IsNullOrWhiteSpace(accessToken) && requestPath.StartsWithSegments("/hubs/telemetry"))
+                            {
+                                context.Token = accessToken;
+                            }
+
+                            return Task.CompletedTask;
+                        },
                         OnTokenValidated = async context =>
                         {
                             if (!int.TryParse(context.Principal?.FindFirstValue(JwtRegisteredClaimNames.Sub), out var userId))

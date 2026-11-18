@@ -1,4 +1,5 @@
 using GardensBack.Application;
+using GardensBack.Application.DeviceInventory.Abstractions;
 using GardensBack.Application.DeviceInventory.Configuration;
 using GardensBack.Application.DeviceProvisioning.Configuration;
 using GardensBack.Application.FirmwareReleases.Configuration;
@@ -8,7 +9,9 @@ using GardensBack.Domain;
 using GardensBack.Health;
 using GardensBack.Infrastructure.Persistance;
 using GardensBack.Middleware;
+using GardensBack.Realtime;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Abstractions;
 using Microsoft.OpenApi;
 using System.Reflection;
 using System.Text.Json.Serialization;
@@ -34,6 +37,10 @@ builder.Services.AddProblemDetails();
 builder.Services.AddEndpointsApiExplorer();
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
+
+builder.Services.AddSignalR();
+
+builder.Services.AddSingleton<ITelemetryRealtimePublisher, SignalRTelemetryPublisher>();
 
 builder.Services.AddSwaggerGen(options =>
 {
@@ -131,7 +138,7 @@ builder.Services.AddCors(o =>
 {
     o.AddPolicy("FrontNoProxy", policy =>
     {
-        policy.WithOrigins("http://localhost:4401").AllowAnyHeader().AllowAnyMethod();
+        policy.WithOrigins("http://localhost:4401").AllowAnyHeader().AllowAnyMethod().AllowCredentials();
     });
 });
 
@@ -165,6 +172,8 @@ app.UseHttpsRedirection();
 
 app.UseAuthentication();
 app.UseAuthorization();
+
+app.MapHub<TelemetryHub>("/hubs/telemetry").RequireAuthorization();
 
 app.MapControllers();
 app.MapHealthChecks("/health").AllowAnonymous();
