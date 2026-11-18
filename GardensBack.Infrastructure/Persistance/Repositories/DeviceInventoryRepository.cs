@@ -156,7 +156,8 @@ namespace GardensBack.Infrastructure.Persistance.Repositories
                     .SetProperty(x => x.UpdateDate, utcNow), ct);
 
         public async Task<IEnumerable<DeviceCommand>> GetCommands(int microcontrollerId, int itemPerRequest, CommandStatus[] statusList, CancellationToken ct)
-            => await _db.DeviceCommands.OrderBy(x => x.CreationDate).Take(itemPerRequest).Where(x => x.MicroCtrlDeviceId == microcontrollerId && statusList.Contains(x.Status))
+            => await _db.DeviceCommands.AsNoTracking().Where(x => x.MicroCtrlDeviceId == microcontrollerId && statusList.Contains(x.Status))
+                .OrderByDescending(x => x.CreationDate).Take(itemPerRequest)
                 .ToListAsync(ct);
 
         public async Task<int> SaveChanges(CancellationToken ct)
