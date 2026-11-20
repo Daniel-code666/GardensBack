@@ -1,0 +1,391 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Documentación de GardensBack: API .NET 10, PostgreSQL, RabbitMQ, SignalR, aprovisionamiento, telemetría, comandos y OTA para la plataforma Huerta.">
+  <meta name="theme-color" content="#102f28">
+  <title>GardensBack · Plataforma Huerta</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #10231d;
+      --muted: #62726b;
+      --line: #d5dfda;
+      --paper: #fffefb;
+      --wash: #f1f6f3;
+      --navy: #102f28;
+      --green: #1f5c43;
+      --green-2: #397a5a;
+      --green-soft: #e0eee6;
+      --blue: #356b77;
+      --blue-soft: #e5f0f2;
+      --amber: #b9782c;
+      --amber-soft: #f8ead1;
+      --radius: 1.15rem;
+      --shadow: 0 20px 55px rgba(16, 47, 40, .11);
+      --sans: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      --mono: "Cascadia Code", "SFMono-Regular", Consolas, monospace;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; scroll-padding-top: 5.5rem; }
+    body { margin: 0; color: var(--ink); background: var(--paper); font-family: var(--sans); font-size: 1rem; line-height: 1.65; }
+    img { display: block; max-width: 100%; }
+    a { color: inherit; }
+    code, pre { font-family: var(--mono); }
+    h1, h2, h3 { margin-top: 0; line-height: 1.12; letter-spacing: -.035em; }
+    h1 { max-width: 12ch; margin-bottom: 1.25rem; font-size: clamp(3rem, 7.5vw, 6.6rem); }
+    h2 { margin-bottom: .8rem; font-size: clamp(2rem, 4.5vw, 3.5rem); }
+    h3 { margin-bottom: .55rem; font-size: 1.08rem; letter-spacing: -.015em; }
+    p { margin: 0 0 1rem; }
+    .wrap { width: min(76rem, calc(100% - 2rem)); margin-inline: auto; }
+    .skip-link { position: fixed; top: .5rem; left: .5rem; z-index: 30; padding: .7rem 1rem; border-radius: .65rem; color: white; background: var(--navy); transform: translateY(-150%); }
+    .skip-link:focus { transform: none; }
+
+    .site-header { position: sticky; top: 0; z-index: 20; border-bottom: 1px solid rgba(213,223,218,.8); background: rgba(255,254,251,.9); backdrop-filter: blur(16px); }
+    .header-inner { min-height: 4.6rem; display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
+    .brand { display: flex; align-items: center; gap: .72rem; text-decoration: none; font-weight: 850; }
+    .brand-mark { width: 2.4rem; height: 2.4rem; display: grid; place-items: center; border-radius: .8rem; color: #f1d49a; background: var(--navy); font-family: var(--mono); font-size: .8rem; }
+    .brand small { display: block; color: var(--muted); font-size: .68rem; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; }
+    nav { display: flex; align-items: center; gap: .25rem; }
+    nav a { padding: .55rem .7rem; border-radius: .65rem; color: var(--muted); font-size: .86rem; font-weight: 750; text-decoration: none; }
+    nav a:hover, nav a:focus-visible { color: var(--green); background: var(--green-soft); outline: none; }
+
+    .hero { position: relative; overflow: hidden; padding: clamp(4.5rem, 10vw, 8rem) 0 5.5rem; color: #eaf4ef; background: var(--navy); }
+    .hero::before { content: ""; position: absolute; width: 42rem; height: 42rem; right: -12rem; top: -18rem; border: 1px solid rgba(255,255,255,.09); border-radius: 50%; box-shadow: 0 0 0 5rem rgba(255,255,255,.018), 0 0 0 10rem rgba(255,255,255,.014); }
+    .hero-grid { position: relative; display: grid; grid-template-columns: 1.05fr .95fr; align-items: center; gap: clamp(2rem, 7vw, 6rem); }
+    .eyebrow { margin-bottom: 1rem; color: var(--amber); font-size: .76rem; font-weight: 850; letter-spacing: .14em; text-transform: uppercase; }
+    .hero .eyebrow { color: #edc47f; }
+    .lede { max-width: 44rem; color: #abc7bb; font-size: clamp(1.08rem, 2vw, 1.28rem); }
+    .stack { display: flex; flex-wrap: wrap; gap: .55rem; margin-top: 1.4rem; }
+    .pill { padding: .42rem .72rem; border: 1px solid rgba(255,255,255,.15); border-radius: 999px; color: #d8e8e0; font-family: var(--mono); font-size: .74rem; }
+    .console { position: relative; overflow: hidden; border: 1px solid rgba(255,255,255,.13); border-radius: 1.3rem; background: #0a211b; box-shadow: 0 28px 65px rgba(0,0,0,.28); }
+    .console-head { display: flex; align-items: center; gap: .4rem; padding: .8rem 1rem; border-bottom: 1px solid rgba(255,255,255,.09); }
+    .console-head i { width: .55rem; height: .55rem; border-radius: 50%; background: #4f7567; }
+    .console-head span { margin-left: auto; color: #78998c; font-family: var(--mono); font-size: .7rem; }
+    .console-body { display: grid; gap: .7rem; padding: 1.3rem; font-family: var(--mono); font-size: .77rem; }
+    .log { display: grid; grid-template-columns: 3.7rem 1fr; gap: .7rem; }
+    .log time { color: #587a6e; }
+    .log strong { color: #efc67e; font-weight: 650; }
+    .log .ok { color: #79d497; }
+
+    section { padding: 5.5rem 0; }
+    .surface { border-block: 1px solid var(--line); background: var(--wash); }
+    .section-head { max-width: 48rem; margin-bottom: 2.25rem; }
+    .section-head > p:last-child { color: var(--muted); }
+
+    .capabilities { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; }
+    .capability { min-height: 13rem; padding: 1.35rem; border: 1px solid var(--line); border-radius: var(--radius); background: var(--paper); box-shadow: 0 8px 25px rgba(16,47,40,.05); }
+    .capability small { display: inline-block; margin-bottom: 1rem; color: var(--green-2); font-family: var(--mono); font-weight: 800; }
+    .capability p { margin: 0; color: var(--muted); font-size: .87rem; }
+
+    .system-flow { display: grid; grid-template-columns: 1fr auto 1fr auto 1fr; align-items: stretch; gap: .75rem; }
+    .system-node { padding: 1.2rem; border: 1px solid var(--line); border-radius: 1rem; background: var(--paper); }
+    .system-node b { display: block; margin-bottom: .35rem; }
+    .system-node code { color: var(--green-2); font-size: .75rem; }
+    .system-node p { margin: .45rem 0 0; color: var(--muted); font-size: .84rem; }
+    .connector { align-self: center; width: 2rem; height: 1px; background: var(--green-2); }
+    .workers { display: grid; grid-template-columns: repeat(5, 1fr); gap: .65rem; margin-top: 1rem; }
+    .worker { padding: .8rem; border-top: .2rem solid var(--blue); background: var(--paper); }
+    .worker code { color: var(--blue); font-size: .74rem; font-weight: 750; }
+    .worker p { margin: .3rem 0 0; color: var(--muted); font-size: .76rem; }
+
+    .architecture { display: grid; grid-template-columns: repeat(4, 1fr); gap: .75rem; }
+    .layer { padding: 1.2rem; border: 1px solid var(--line); border-radius: 1rem; background: var(--paper); }
+    .layer small { color: var(--amber); font-family: var(--mono); font-weight: 800; }
+    .layer p { margin: .45rem 0 0; color: var(--muted); font-size: .84rem; }
+    .dependency-rule { margin-top: 1rem; padding: 1rem 1.2rem; border-left: .25rem solid var(--green-2); background: var(--green-soft); color: var(--green); }
+
+    .journey { display: grid; grid-template-columns: .85fr 1.15fr; align-items: center; gap: clamp(2rem, 7vw, 6rem); }
+    .steps { display: grid; gap: .8rem; counter-reset: step; }
+    .step { display: grid; grid-template-columns: 2.4rem 1fr; gap: .9rem; padding-bottom: .8rem; border-bottom: 1px solid var(--line); }
+    .step::before { counter-increment: step; content: counter(step, decimal-leading-zero); color: var(--amber); font-family: var(--mono); font-weight: 800; }
+    .step p { margin: .2rem 0 0; color: var(--muted); font-size: .86rem; }
+    .image-frame { padding: .55rem; border: 1px solid var(--line); border-radius: 1.3rem; background: white; box-shadow: var(--shadow); }
+    .image-frame img { border-radius: .85rem; }
+    .caption { margin: .65rem .35rem .1rem; color: var(--muted); font-size: .78rem; }
+
+    .data-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: .75rem; }
+    .entity { padding: 1rem; border: 1px solid var(--line); border-radius: .9rem; background: var(--paper); }
+    .entity code { color: var(--green-2); font-weight: 800; }
+    .entity p { margin: .35rem 0 0; color: var(--muted); font-size: .82rem; }
+
+    .api-table { overflow-x: auto; border: 1px solid var(--line); border-radius: 1rem; background: var(--paper); }
+    table { width: 100%; border-collapse: collapse; font-size: .88rem; }
+    th, td { padding: .9rem 1rem; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
+    th { color: var(--navy); background: var(--green-soft); font-size: .75rem; letter-spacing: .05em; text-transform: uppercase; }
+    tr:last-child td { border-bottom: 0; }
+    td code { white-space: nowrap; color: var(--green-2); }
+
+    .outcomes { display: grid; grid-template-columns: 1.05fr .95fr; gap: 1rem; }
+    .outcome { overflow: hidden; border: 1px solid var(--line); border-radius: var(--radius); background: var(--paper); }
+    .outcome.wide { grid-column: 1 / -1; }
+    .outcome img { width: 100%; aspect-ratio: 16 / 8.2; object-fit: cover; object-position: top; border-bottom: 1px solid var(--line); }
+    .outcome-copy { padding: 1rem 1.15rem; }
+    .outcome-copy p { margin: 0; color: var(--muted); font-size: .84rem; }
+
+    .security-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: .75rem; }
+    .security-item { display: grid; grid-template-columns: 2rem 1fr; gap: .8rem; padding: 1rem; border: 1px solid var(--line); border-radius: .9rem; background: var(--paper); }
+    .check { color: var(--green-2); font-weight: 900; }
+    .security-item p { margin: .2rem 0 0; color: var(--muted); font-size: .84rem; }
+
+    .code-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; }
+    .code-card { overflow: hidden; border: 1px solid #244d40; border-radius: 1rem; background: var(--navy); }
+    .code-title { padding: .65rem 1rem; border-bottom: 1px solid rgba(255,255,255,.1); color: #a9c7ba; font-size: .75rem; }
+    pre { margin: 0; padding: 1rem; overflow: auto; color: #eaf4ef; font-size: .78rem; line-height: 1.75; }
+    pre b { color: #efc67e; font-weight: 650; }
+    .deploy-note { margin-top: 1rem; padding: 1rem 1.2rem; border-left: .25rem solid var(--amber); color: #674619; background: var(--amber-soft); }
+
+    footer { padding: 2.5rem 0; border-top: 1px solid var(--line); color: var(--muted); font-size: .85rem; }
+    .footer-inner { display: flex; justify-content: space-between; gap: 1rem; }
+
+    @media (max-width: 1000px) {
+      nav { display: none; }
+      .hero-grid, .journey { grid-template-columns: 1fr; }
+      .capabilities, .architecture { grid-template-columns: repeat(2, 1fr); }
+      .workers { grid-template-columns: repeat(2, 1fr); }
+    }
+    @media (max-width: 720px) {
+      h1 { font-size: clamp(2.7rem, 15vw, 4.3rem); }
+      section { padding: 4rem 0; }
+      .capabilities, .architecture, .data-grid, .outcomes, .security-grid, .code-grid { grid-template-columns: 1fr; }
+      .outcome.wide { grid-column: auto; }
+      .system-flow { grid-template-columns: 1fr; }
+      .connector { width: 1px; height: 1.5rem; margin-inline: auto; }
+      .workers { grid-template-columns: 1fr; }
+      .footer-inner { flex-direction: column; }
+    }
+    @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+  </style>
+</head>
+<body>
+  <a class="skip-link" href="#contenido">Saltar al contenido</a>
+  <header class="site-header">
+    <div class="wrap header-inner">
+      <a class="brand" href="#inicio" aria-label="Ir al inicio">
+        <span class="brand-mark" aria-hidden="true">API</span>
+        <span>GardensBack <small>Plataforma Huerta</small></span>
+      </a>
+      <nav aria-label="Navegación principal">
+        <a href="#sistema">Sistema</a>
+        <a href="#arquitectura">Arquitectura</a>
+        <a href="#api">API</a>
+        <a href="#seguridad">Seguridad</a>
+        <a href="#ejecucion">Ejecución</a>
+      </nav>
+    </div>
+  </header>
+
+  <main id="contenido">
+    <section class="hero" id="inicio">
+      <div class="wrap hero-grid">
+        <div>
+          <p class="eyebrow">Documentación técnica · .NET 10</p>
+          <h1>El plano de control de la huerta conectada.</h1>
+          <p class="lede">Una API que convierte usuarios, dispositivos y mensajes MQTT en aprovisionamiento seguro, inventario consultable, telemetría persistente, comandos correlacionados y actualizaciones OTA.</p>
+          <div class="stack" aria-label="Tecnologías principales">
+            <span class="pill">ASP.NET Core</span>
+            <span class="pill">PostgreSQL</span>
+            <span class="pill">RabbitMQ MQTT</span>
+            <span class="pill">SignalR</span>
+            <span class="pill">Docker</span>
+          </div>
+        </div>
+        <aside class="console" aria-label="Secuencia resumida de operación">
+          <div class="console-head"><i></i><i></i><i></i><span>gardens-back / runtime</span></div>
+          <div class="console-body">
+            <div class="log"><time>00:00</time><span><strong>database</strong> migraciones verificadas</span></div>
+            <div class="log"><time>00:01</time><span><strong>mqtt</strong> consumidores conectados</span></div>
+            <div class="log"><time>00:02</time><span><strong>api</strong> rutas y Swagger disponibles</span></div>
+            <div class="log"><time>00:03</time><span><strong>signalr</strong> hub protegido preparado</span></div>
+            <div class="log"><time>00:04</time><span class="ok">health: ready</span></div>
+          </div>
+        </aside>
+      </div>
+    </section>
+
+    <section id="capacidades">
+      <div class="wrap">
+        <div class="section-head">
+          <p class="eyebrow">Capacidades</p>
+          <h2>Una plataforma para administrar todo el ciclo del dispositivo</h2>
+          <p>La API conecta los flujos humanos del front con los contratos de bajo nivel del firmware sin entregar al navegador las credenciales privadas del microcontrolador.</p>
+        </div>
+        <div class="capabilities">
+          <article class="capability"><small>IDENTIDAD</small><h3>Usuarios y autorización</h3><p>JWT, roles, usuarios activos, perfil y acceso administrativo a operaciones sensibles.</p></article>
+          <article class="capability"><small>PROVISIONING</small><h3>Alta administrada</h3><p>Bootstrap temporal, claim idempotente, credenciales MQTT cifradas y factory reset.</p></article>
+          <article class="capability"><small>OPERACIÓN</small><h3>Datos y comandos</h3><p>Inventario, telemetría histórica, publicación en vivo y acciones dirigidas al dispositivo.</p></article>
+          <article class="capability"><small>FIRMWARE</small><h3>Distribución OTA</h3><p>Releases, artifacts, manifiestos verificados y seguimiento del estado de actualización.</p></article>
+        </div>
+      </div>
+    </section>
+
+    <section class="surface" id="sistema">
+      <div class="wrap">
+        <div class="section-head">
+          <p class="eyebrow">Sistema distribuido</p>
+          <h2>HTTP para administrar, MQTT para operar, SignalR para observar</h2>
+          <p>Cada canal tiene una responsabilidad concreta. PostgreSQL mantiene el estado consistente y los workers conectan la mensajería asíncrona con los casos de uso.</p>
+        </div>
+        <div class="system-flow" aria-label="Flujo principal del sistema">
+          <article class="system-node"><code>Angular + JWT</code><b>Front</b><p>Administración, provisioning, consultas y comandos.</p></article>
+          <span class="connector" aria-hidden="true"></span>
+          <article class="system-node"><code>HTTP + SignalR</code><b>GardensBack</b><p>Casos de uso, seguridad, persistencia y coordinación.</p></article>
+          <span class="connector" aria-hidden="true"></span>
+          <article class="system-node"><code>MQTT</code><b>ESP32-C3</b><p>Inventario, telemetría, acciones, control y OTA.</p></article>
+        </div>
+        <div class="workers" aria-label="Procesos en segundo plano">
+          <article class="worker"><code>InventoryConsumer</code><p>Sincroniza el hardware informado.</p></article>
+          <article class="worker"><code>TelemetryConsumer</code><p>Persiste y publica lecturas.</p></article>
+          <article class="worker"><code>ActionResponse</code><p>Correlaciona comandos.</p></article>
+          <article class="worker"><code>FirmwareStatus</code><p>Actualiza el progreso OTA.</p></article>
+          <article class="worker"><code>ExpirationWorker</code><p>Expira solicitudes pendientes.</p></article>
+        </div>
+      </div>
+    </section>
+
+    <section id="arquitectura">
+      <div class="wrap">
+        <div class="section-head">
+          <p class="eyebrow">Arquitectura</p>
+          <h2>Capas con responsabilidades explícitas</h2>
+          <p>La solución mantiene el dominio y los casos de uso aislados de detalles como ASP.NET Core, Entity Framework o MQTT.</p>
+        </div>
+        <div class="architecture">
+          <article class="layer"><small>API</small><h3>GardensBack</h3><p>Controladores, middleware, autenticación, Swagger, health checks y SignalR.</p></article>
+          <article class="layer"><small>CASOS DE USO</small><h3>Application</h3><p>Servicios, DTO, validaciones y contratos para persistencia y mensajería.</p></article>
+          <article class="layer"><small>NEGOCIO</small><h3>Domain</h3><p>Entidades, estados, enumeraciones y reglas centrales de la plataforma.</p></article>
+          <article class="layer"><small>ADAPTADORES</small><h3>Infrastructure</h3><p>EF Core, PostgreSQL, criptografía, repositorios, MQTT y workers.</p></article>
+        </div>
+        <div class="dependency-rule"><strong>Regla de dependencia:</strong> Application define las abstracciones e Infrastructure las implementa; el dominio no depende de la API.</div>
+      </div>
+    </section>
+
+    <section class="surface" id="aprovisionamiento">
+      <div class="wrap journey">
+        <div>
+          <p class="eyebrow">Aprovisionamiento</p>
+          <h2>Propiedad y conectividad sin exponer secretos al front</h2>
+          <div class="steps">
+            <article class="step"><div><h3>Crear el bootstrap</h3><p>El usuario autenticado inicia el flujo y recibe un token temporal destinado al ESP.</p></div></article>
+            <article class="step"><div><h3>Resolver el claim</h3><p>La API vincula el microcontrolador con su propietario y firma una respuesta verificable.</p></div></article>
+            <article class="step"><div><h3>Entregar MQTT</h3><p>Las credenciales se cifran con AES-256-GCM usando material aportado por el dispositivo.</p></div></article>
+            <article class="step"><div><h3>Confirmar el inventario</h3><p>Tras conectarse, el firmware publica sus sensores, actuadores y versión.</p></div></article>
+          </div>
+        </div>
+        <figure class="image-frame">
+          <img src="site-assets/provisioning.png" alt="Pantalla del front que inicia el aprovisionamiento administrado por GardensBack" width="1838" height="882" loading="lazy">
+          <figcaption class="caption">El front recopila la intención del usuario; el backend conserva propiedad, tokens y contratos.</figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <section id="datos">
+      <div class="wrap">
+        <div class="section-head">
+          <p class="eyebrow">Persistencia</p>
+          <h2>Un modelo para identidad, operación y actualización</h2>
+          <p>Las entidades permiten seguir el dispositivo desde el alta hasta cada lectura, comando y cambio de firmware.</p>
+        </div>
+        <div class="data-grid">
+          <article class="entity"><code>MicrocontrollerDevice</code><p>Identidad, propietario, placa, firmware y estado de aprovisionamiento.</p></article>
+          <article class="entity"><code>DeviceClaim</code><p>Solicitud y resultado idempotente de vinculación.</p></article>
+          <article class="entity"><code>MqttCredential</code><p>Estado y versión de las credenciales asociadas al equipo.</p></article>
+          <article class="entity"><code>Device / DeviceTelemetry</code><p>Inventario de sensores y actuadores con sus lecturas históricas.</p></article>
+          <article class="entity"><code>DeviceCommand</code><p>Solicitud, publicación, respuesta, expiración y error correlacionados.</p></article>
+          <article class="entity"><code>FirmwareRelease / Update</code><p>Artifact, manifestación y estado OTA por dispositivo.</p></article>
+        </div>
+      </div>
+    </section>
+
+    <section class="surface" id="api">
+      <div class="wrap">
+        <div class="section-head">
+          <p class="eyebrow">Superficie HTTP</p>
+          <h2>Endpoints agrupados por caso de uso</h2>
+          <p>Swagger expone el detalle actualizado de rutas, cuerpos, respuestas y autorización. Todos los controladores de aplicación usan el prefijo <code>/api</code>.</p>
+        </div>
+        <div class="api-table">
+          <table>
+            <thead><tr><th>Grupo</th><th>Responsabilidad</th><th>Autorización</th></tr></thead>
+            <tbody>
+              <tr><td><code>/api/Auth</code></td><td>Inicio de sesión y emisión JWT.</td><td>Anónimo en login</td></tr>
+              <tr><td><code>/api/User · /api/Roles</code></td><td>Usuarios, perfil, estados y roles.</td><td>JWT / Administrador</td></tr>
+              <tr><td><code>/api/DeviceProvisioning</code></td><td>Start, claim, credenciales y factory reset.</td><td>JWT o token temporal</td></tr>
+              <tr><td><code>/api/DeviceInventory</code></td><td>Dispositivos, telemetría y comandos.</td><td>JWT</td></tr>
+              <tr><td><code>/api/FirmwareReleases</code></td><td>Crear, publicar, consultar y revocar releases.</td><td>JWT / Administrador</td></tr>
+              <tr><td><code>/api/DeviceFirmwareUpdates</code></td><td>Solicitar y seguir una actualización OTA.</td><td>JWT</td></tr>
+              <tr><td><code>/health · /swagger</code></td><td>Diagnóstico y contrato OpenAPI.</td><td>Anónimo</td></tr>
+              <tr><td><code>/hubs/telemetry</code></td><td>Publicación en tiempo real hacia el front.</td><td>JWT</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <section id="resultados">
+      <div class="wrap">
+        <div class="section-head">
+          <p class="eyebrow">Resultados observables</p>
+          <h2>Los contratos terminan en información accionable</h2>
+          <p>La telemetría que ingresa por MQTT se persiste, consulta por HTTP y publica por SignalR para construir vistas operativas e históricas.</p>
+        </div>
+        <div class="outcomes">
+          <article class="outcome"><img src="site-assets/dashboard.png" alt="Dashboard construido con telemetría e inventario entregados por GardensBack" width="1853" height="901" loading="lazy"><div class="outcome-copy"><h3>Resumen operativo</h3><p>Estado del microcontrolador, inventario, últimas lecturas y actividad en tiempo real.</p></div></article>
+          <article class="outcome"><img src="site-assets/telemetry.png" alt="Consulta histórica de telemetría servida por GardensBack" width="1478" height="886" loading="lazy"><div class="outcome-copy"><h3>Histórico por dispositivo</h3><p>Lecturas filtradas con fecha UTC, métricas agregadas y comando de actualización.</p></div></article>
+        </div>
+      </div>
+    </section>
+
+    <section class="surface" id="seguridad">
+      <div class="wrap">
+        <div class="section-head">
+          <p class="eyebrow">Seguridad</p>
+          <h2>Controles distintos para usuarios y dispositivos</h2>
+          <p>La API separa la sesión humana del material usado por el firmware y valida la configuración crítica al iniciar.</p>
+        </div>
+        <div class="security-grid">
+          <article class="security-item"><span class="check">✓</span><div><h3>JWT y roles</h3><p>Protección de controladores, SignalR y operaciones administrativas.</p></div></article>
+          <article class="security-item"><span class="check">✓</span><div><h3>Tokens temporales con hash</h3><p>El valor de provisioning expira y no se conserva en texto claro.</p></div></article>
+          <article class="security-item"><span class="check">✓</span><div><h3>AES-256-GCM</h3><p>Las credenciales MQTT se entregan autenticadas y cifradas para el dispositivo.</p></div></article>
+          <article class="security-item"><span class="check">✓</span><div><h3>Comandos correlacionados</h3><p>Destino, requestId, versión, expiración y autenticación limitan replay y cruce de equipos.</p></div></article>
+          <article class="security-item"><span class="check">✓</span><div><h3>Releases verificadas</h3><p>Clave pública, firma, hash, tamaño y placa se validan antes de publicar.</p></div></article>
+          <article class="security-item"><span class="check">✓</span><div><h3>ProblemDetails y logs</h3><p>Los errores HTTP se normalizan sin convertir los secretos en información de diagnóstico.</p></div></article>
+        </div>
+      </div>
+    </section>
+
+    <section id="ejecucion">
+      <div class="wrap">
+        <div class="section-head">
+          <p class="eyebrow">Ejecución y despliegue</p>
+          <h2>Desarrollo con .NET, operación integrada con Docker</h2>
+          <p>El repositorio puede ejecutarse de forma independiente, pero el entorno completo utiliza Compose para unir API, PostgreSQL, RabbitMQ y front.</p>
+        </div>
+        <div class="code-grid">
+          <div class="code-card"><div class="code-title">Desarrollo local</div><pre><b>dotnet restore</b> .\GardensBack.slnx
+dotnet build .\GardensBack.slnx
+
+dotnet run --project `
+  .\GardensBack\GardensBack.csproj `
+  --launch-profile https</pre></div>
+          <div class="code-card"><div class="code-title">Infraestructura Docker</div><pre><b>docker compose up</b> -d --build gardens-back
+
+docker compose ps
+docker compose logs -f gardens-back
+
+# API interna: gardens-back:8080</pre></div>
+        </div>
+        <div class="deploy-note"><strong>Producción:</strong> los secretos deben provenir del entorno, <code>AllowHttp</code> debe deshabilitarse y la conectividad anunciada al ESP debe utilizar direcciones alcanzables desde su red.</div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="wrap footer-inner">
+      <span>Proyecto Huerta · GardensBack</span>
+      <span>API, persistencia y mensajería para dispositivos ESP32-C3.</span>
+    </div>
+  </footer>
+</body>
+</html>

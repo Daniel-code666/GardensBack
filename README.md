@@ -259,3 +259,15 @@ Además, validar:
 - Las fechas intercambiadas por la API se manejan en UTC.
 - Las operaciones MQTT deben conservar `deviceId` y `requestId` para correlación.
 - Las nuevas entidades requieren configuración EF Core y migración correspondiente.
+
+## Documentación para GitHub Pages
+
+La documentación visual del backend se encuentra en [`index.html`](index.html). Es una página estática y autocontenida, con sus imágenes en [`site-assets/`](site-assets/), preparada para publicarse desde la raíz del repositorio mediante GitHub Pages.
+
+Para revisarla localmente:
+
+```powershell
+python -m http.server 4175
+```
+
+Luego abre `http://localhost:4175` en el navegador.
