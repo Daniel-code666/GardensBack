@@ -117,6 +117,21 @@
     tr:last-child td { border-bottom: 0; }
     td code { white-space: nowrap; color: var(--green-2); }
 
+    .sequence-grid { display: grid; gap: 1.2rem; margin-bottom: 2.5rem; }
+    .sequence-card { padding: 1.1rem; border: 1px solid var(--line); border-radius: var(--radius); background: var(--paper); box-shadow: 0 10px 28px rgba(16,47,40,.06); }
+    .sequence-card > p { margin: -.15rem 0 1rem; color: var(--muted); font-size: .86rem; }
+    .sequence-scroll { overflow-x: auto; padding-bottom: .35rem; }
+    .sequence { min-width: 58rem; }
+    .sequence-actors, .sequence-step { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); }
+    .sequence-actors { gap: .45rem; }
+    .sequence-actor { padding: .65rem .35rem; border-radius: .65rem; color: white; background: var(--navy); text-align: center; font-size: .75rem; font-weight: 800; }
+    .sequence-flow { padding: .7rem 0; background-image: linear-gradient(90deg, transparent 8.28%, #cbd8d1 8.28% 8.38%, transparent 8.38%), linear-gradient(90deg, transparent 24.95%, #cbd8d1 24.95% 25.05%, transparent 25.05%), linear-gradient(90deg, transparent 41.62%, #cbd8d1 41.62% 41.72%, transparent 41.72%), linear-gradient(90deg, transparent 58.28%, #cbd8d1 58.28% 58.38%, transparent 58.38%), linear-gradient(90deg, transparent 74.95%, #cbd8d1 74.95% 75.05%, transparent 75.05%), linear-gradient(90deg, transparent 91.62%, #cbd8d1 91.62% 91.72%, transparent 91.72%); }
+    .sequence-step { min-height: 3.25rem; align-items: start; }
+    .sequence-message { position: relative; grid-column: var(--from) / var(--to); margin: .55rem .5rem 0; padding: .32rem .6rem 0; border-top: 2px solid var(--green-2); color: var(--ink); text-align: center; font-size: .74rem; font-weight: 700; line-height: 1.35; }
+    .sequence-message::after { content: ""; position: absolute; top: -.35rem; right: -.05rem; border-width: .28rem 0 .28rem .45rem; border-style: solid; border-color: transparent transparent transparent var(--green-2); }
+    .sequence-message.reverse::after { left: -.05rem; right: auto; border-width: .28rem .45rem .28rem 0; border-color: transparent var(--green-2) transparent transparent; }
+    .sequence-note { grid-column: var(--from) / var(--to); margin: .2rem .5rem; padding: .45rem .65rem; border-radius: .55rem; color: #674619; background: var(--amber-soft); text-align: center; font-size: .72rem; font-weight: 700; }
+    .examples-title { margin: 0 0 1rem; font-size: 1.35rem; }
     .examples { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; }
     .example-card { overflow: hidden; border: 1px solid #244d40; border-radius: var(--radius); background: var(--navy); box-shadow: 0 14px 35px rgba(16,47,40,.1); }
     .example-head { padding: 1rem 1.1rem; border-bottom: 1px solid rgba(255,255,255,.1); }
@@ -337,10 +352,105 @@
     <section id="ejemplos">
       <div class="wrap">
         <div class="section-head">
-          <p class="eyebrow">Contratos en acción</p>
-          <h2>Ejemplos de los flujos principales</h2>
-          <p>Los identificadores son ilustrativos, pero las rutas, tópicos y propiedades corresponden a los contratos implementados.</p>
+          <p class="eyebrow">Secuencias del sistema</p>
+          <h2>Cómo colaboran los componentes en cada proceso</h2>
+          <p>Los diagramas siguen el orden real entre usuario, Angular, API, PostgreSQL, RabbitMQ y ESP32-C3. Debajo se conservan contratos representativos para relacionar cada secuencia con su implementación.</p>
         </div>
+        <div class="sequence-grid" aria-label="Diagramas de secuencia de la plataforma">
+          <article class="sequence-card">
+            <h3>Aprovisionamiento administrado</h3>
+            <p>Desde la identificación por USB hasta la conexión autenticada del ESP con RabbitMQ.</p>
+            <div class="sequence-scroll" tabindex="0" aria-label="Desplazar diagrama de aprovisionamiento horizontalmente">
+              <div class="sequence">
+                <div class="sequence-actors">
+                  <span class="sequence-actor">Usuario</span><span class="sequence-actor">Angular</span><span class="sequence-actor">ESP32-C3</span><span class="sequence-actor">API .NET</span><span class="sequence-actor">PostgreSQL</span><span class="sequence-actor">RabbitMQ</span>
+                </div>
+                <div class="sequence-flow">
+                  <div class="sequence-step"><span class="sequence-message" style="--from:1;--to:3">Conecta el ESP por USB e inicia identificación</span></div>
+                  <div class="sequence-step"><span class="sequence-message" style="--from:2;--to:4">device_identify por Web Serial</span></div>
+                  <div class="sequence-step"><span class="sequence-message reverse" style="--from:2;--to:4">Identidad, firmware y estado</span></div>
+                  <div class="sequence-step"><span class="sequence-message" style="--from:2;--to:5">POST /DeviceProvisioning/start + JWT</span></div>
+                  <div class="sequence-step"><span class="sequence-message" style="--from:4;--to:6">Crea dispositivo, claim y hash del token</span></div>
+                  <div class="sequence-step"><span class="sequence-message reverse" style="--from:2;--to:5">Token temporal + bootstrapRequestId</span></div>
+                  <div class="sequence-step"><span class="sequence-message" style="--from:2;--to:4">Bootstrap: Wi-Fi, URL y token por Web Serial</span></div>
+                  <div class="sequence-step"><span class="sequence-message" style="--from:3;--to:5">Claim y solicitud de credenciales</span></div>
+                  <div class="sequence-step"><span class="sequence-message" style="--from:4;--to:6">Valida token y persiste credencial</span></div>
+                  <div class="sequence-step"><span class="sequence-message reverse" style="--from:3;--to:5">Claim firmado + sobre AES-256-GCM</span></div>
+                  <div class="sequence-step"><span class="sequence-message" style="--from:3;--to:7">Conexión MQTT con credencial individual</span></div>
+                  <div class="sequence-step"><span class="sequence-note" style="--from:2;--to:6">El token original no se almacena: PostgreSQL conserva únicamente su hash.</span></div>
+                </div>
+              </div>
+            </div>
+          </article>
+
+          <article class="sequence-card">
+            <h3>Telemetría periódica y tiempo real</h3>
+            <p>Una lectura genera persistencia histórica y una actualización inmediata del dashboard.</p>
+            <div class="sequence-scroll" tabindex="0" aria-label="Desplazar diagrama de telemetría horizontalmente">
+              <div class="sequence">
+                <div class="sequence-actors">
+                  <span class="sequence-actor">Sensores</span><span class="sequence-actor">ESP32-C3</span><span class="sequence-actor">RabbitMQ</span><span class="sequence-actor">Worker .NET</span><span class="sequence-actor">PostgreSQL</span><span class="sequence-actor">Angular / SignalR</span>
+                </div>
+                <div class="sequence-flow">
+                  <div class="sequence-step"><span class="sequence-message" style="--from:1;--to:3">Muestrea sensores y actuadores</span></div>
+                  <div class="sequence-step"><span class="sequence-message" style="--from:2;--to:4">PUBLISH gardens/{deviceId}/telemetry</span></div>
+                  <div class="sequence-step"><span class="sequence-message" style="--from:3;--to:5">Entrega al MqttTelemetryConsumer</span></div>
+                  <div class="sequence-step"><span class="sequence-message" style="--from:4;--to:6">Valida inventario, unidad y dispositivo</span></div>
+                  <div class="sequence-step"><span class="sequence-message reverse" style="--from:4;--to:6">Lecturas persistidas en UTC</span></div>
+                  <div class="sequence-step"><span class="sequence-message" style="--from:4;--to:7">TelemetryReceived al grupo del microcontrolador</span></div>
+                  <div class="sequence-step"><span class="sequence-note" style="--from:2;--to:7">El histórico se consulta por HTTP; las lecturas nuevas llegan por SignalR sin recargar la página.</span></div>
+                </div>
+              </div>
+            </div>
+          </article>
+
+          <article class="sequence-card">
+            <h3>Comunicación operativa mediante el broker</h3>
+            <p>RabbitMQ separa los canales de entrada y salida de cada microcontrolador.</p>
+            <div class="sequence-scroll" tabindex="0" aria-label="Desplazar diagrama de comunicación MQTT horizontalmente">
+              <div class="sequence">
+                <div class="sequence-actors">
+                  <span class="sequence-actor">ESP32-C3</span><span class="sequence-actor">RabbitMQ MQTT</span><span class="sequence-actor">amq.topic</span><span class="sequence-actor">Consumers .NET</span><span class="sequence-actor">PostgreSQL</span><span class="sequence-actor">Angular</span>
+                </div>
+                <div class="sequence-flow">
+                  <div class="sequence-step"><span class="sequence-message" style="--from:1;--to:3">CONNECT con clientId y credencial individual</span></div>
+                  <div class="sequence-step"><span class="sequence-message reverse" style="--from:1;--to:3">Conexión aceptada y suscripciones activas</span></div>
+                  <div class="sequence-step"><span class="sequence-message" style="--from:1;--to:4">PUBLISH inventory / telemetry / actions-response</span></div>
+                  <div class="sequence-step"><span class="sequence-message" style="--from:3;--to:5">Enruta por gardens.{deviceId}.{canal}</span></div>
+                  <div class="sequence-step"><span class="sequence-message" style="--from:4;--to:6">Procesa, correlaciona y persiste</span></div>
+                  <div class="sequence-step"><span class="sequence-message reverse" style="--from:4;--to:7">HTTP y SignalR exponen solo datos autorizados</span></div>
+                  <div class="sequence-step"><span class="sequence-note" style="--from:1;--to:6">Angular no abre una conexión MQTT: el backend actúa como frontera de autorización y traducción.</span></div>
+                </div>
+              </div>
+            </div>
+          </article>
+
+          <article class="sequence-card">
+            <h3>Comando y respuesta correlacionada</h3>
+            <p>El requestId acompaña la operación desde la solicitud del usuario hasta la confirmación del ESP.</p>
+            <div class="sequence-scroll" tabindex="0" aria-label="Desplazar diagrama de comandos horizontalmente">
+              <div class="sequence">
+                <div class="sequence-actors">
+                  <span class="sequence-actor">Usuario</span><span class="sequence-actor">Angular</span><span class="sequence-actor">API .NET</span><span class="sequence-actor">PostgreSQL</span><span class="sequence-actor">RabbitMQ</span><span class="sequence-actor">ESP32-C3</span>
+                </div>
+                <div class="sequence-flow">
+                  <div class="sequence-step"><span class="sequence-message" style="--from:1;--to:3">Selecciona comando, estado o modo</span></div>
+                  <div class="sequence-step"><span class="sequence-message" style="--from:2;--to:4">POST /DeviceInventory/Commands</span></div>
+                  <div class="sequence-step"><span class="sequence-message" style="--from:3;--to:5">Valida propietario y crea Pending</span></div>
+                  <div class="sequence-step"><span class="sequence-message" style="--from:3;--to:6">Firma y publica gardens/{deviceId}/actions</span></div>
+                  <div class="sequence-step"><span class="sequence-message" style="--from:5;--to:7">Entrega device_action</span></div>
+                  <div class="sequence-step"><span class="sequence-message reverse" style="--from:5;--to:7">actions-response con el mismo requestId</span></div>
+                  <div class="sequence-step"><span class="sequence-message reverse" style="--from:3;--to:6">Consumer correlaciona la respuesta</span></div>
+                  <div class="sequence-step"><span class="sequence-message" style="--from:3;--to:5">Completed + telemetría de resultado</span></div>
+                  <div class="sequence-step"><span class="sequence-message reverse" style="--from:2;--to:4">200 OK o 202 Accepted</span></div>
+                  <div class="sequence-step"><span class="sequence-note" style="--from:2;--to:6">Tras una respuesta exitosa, el front actualiza la gráfica sin perder scroll ni selección.</span></div>
+                </div>
+              </div>
+            </div>
+          </article>
+        </div>
+        <h3 class="examples-title">Contratos y payloads de referencia</h3>
+
         <div class="examples">
           <article class="example-card">
             <div class="example-head"><small>HTTP · APROVISIONAMIENTO</small><h3>Crear el bootstrap temporal</h3></div>
